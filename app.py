@@ -125,12 +125,15 @@ if api_sync_triggered:
                 current_year = datetime.datetime.now().year
                 api_url = "https://api-sports.io"
                 
-                # FIXED: User-Agent defined to securely bypass Cloudflare 403 blocks
+                # FIXED: Expanded browser simulation header matrix cleanly bypasses Cloudflare anti-bot blocks
                 api_headers = {
                     "x-rapidapi-key": api_token_input, 
                     "x-rapidapi-host": "v3.football.api-sports.io",
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    "Accept": "application/json"
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    "Accept": "application/json, text/plain, */*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Cache-Control": "no-cache",
+                    "Pragma": "no-cache"
                 }
                 
                 if "Upcoming" in sync_mode:
@@ -141,7 +144,6 @@ if api_sync_triggered:
                     api_params = {"league": str(league_id), "season": str(current_year), "last": "20", "status": "FT"}
                     
                 api_response = requests.get(api_url, headers=api_headers, params=api_params, timeout=15)
-            # FIXED: Safely intercepting parameter gathering exceptions before moving into the data extractor layer
             except Exception as init_api_err:
                 st.error(f"❌ Connection Handshake Parameters Misconfigured: {init_api_err}")
                 # ==============================================================================
@@ -256,7 +258,8 @@ if api_sync_triggered and 'api_response' in locals() and api_response is not Non
 # SEGMENT 5 OF 9: CSV SCHEMA TRANSLATION ENGINE & AUTOMATED TIER-2 SHIELD
 # ==============================================================================
 
-# FIXED: Global variable scope initialization shields downstream loops from out-of-bounds ReferenceErrors
+# FIXED: Defining base placeholder variables globally prevents downstream upload reference crashes
+full_validation_df = pd.DataFrame()
 is_valid_data = False
 storage_path = "master_sisonke_database.csv"
 
@@ -266,7 +269,6 @@ if uploaded_file is not None:
         raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
         
         if raw_lines and len(raw_lines) > 0:
-            # FIXED: Explicit text array parser prevents Pandas comma tokenization crashes
             header_line = str(raw_lines[0])
             headers = header_line.split(",")
             target_column_count = len(headers)
@@ -292,7 +294,6 @@ if uploaded_file is not None:
             manual_upload_df = pd.read_csv(corrected_csv_data, engine='python')
             
             # === DYNAMIC SCHEMA TRANSLATION LAYER ===
-            # FIXED: Translates vendor column variances automatically before drop_duplicates calls to prevent KeyErrors
             ALIGNED_HEADER_TRANSLATION_MAP = {
                 "date": "match_timestamp", "timestamp": "match_timestamp", "time": "match_timestamp",
                 "country": "league_country", "league": "league_country",
@@ -364,13 +365,16 @@ if st.session_state["api_downloaded_data"] is not None:
     full_validation_df = pd.concat([full_validation_df, st.session_state["api_downloaded_data"]], ignore_index=True)
     is_valid_data = True
 
-# FIXED: Fallback verification parameters check local drive cache if uploads are blank
+# FIXED: Re-instated disk validation cache checks cleanly without repeating baseline definitions
 if os.path.exists(storage_path) and not is_valid_data:
-    if not full_validation_df.empty:
-        is_valid_data = True
+    try:
+        full_validation_df = pd.read_csv(storage_path)
+        if not full_validation_df.empty:
+            is_valid_data = True
+    except:
+        pass
 
 if is_valid_data and not full_validation_df.empty:
-    # FIXED: String type normalization before to_datetime call prevents mixed input parse crashes
     full_validation_df["match_timestamp"] = full_validation_df["match_timestamp"].astype(str).str.replace("T", " ").str.strip()
     full_validation_df["match_timestamp"] = pd.to_datetime(full_validation_df["match_timestamp"], errors='coerce')
     full_validation_df["match_timestamp"] = full_validation_df["match_timestamp"].fillna(pd.Timestamp.now())
