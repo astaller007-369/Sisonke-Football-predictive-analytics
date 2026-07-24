@@ -124,31 +124,50 @@ if api_sync_triggered:
         with st.spinner("Connecting via Pure Python HTTPS Socket... Extracting Data..."):
             try:
                 league_id = API_LEAGUE_ID_MAP[target_sync_country.lower().strip()]
-                current_year = datetime.datetime.now().year
+                current_time_marker = datetime.datetime.now()
+                target_year = current_time_marker.year
                 
-                # FIXED: Rewritten entirely using your pure python snippet documentation to bypass Cloudflare
-                conn = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=15)
-                api_headers = {
-                    'x-apisports-key': api_token_input
-                }
-                
-                if "Upcoming" in sync_mode:
-                    today = datetime.datetime.now().strftime("%Y-%m-%d")
-                    future_end = (datetime.datetime.now() + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
-                    endpoint_query = f"/fixtures?league={league_id}&season={current_year}&from={today}&to={future_end}"
-                else:
-                    endpoint_query = f"/fixtures?league={league_id}&season={current_year}&last=20&status=FT"
+                # FIXED: Adaptive structural array layer automatically loops back through historical timelines 
+                # if modern season clusters have not initialized on server frameworks yet.
+                for attempt in range(2):
+                    conn = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=15)
+                    api_headers = {
+                        'x-apisports-key': api_token_input
+                    }
                     
-                conn.request("GET", endpoint_query, headers=api_headers)
-                api_response = conn.getresponse()
-                
-                # Safe status checking block
-                if api_response.status == 200:
-                    raw_data_bytes = api_response.read()
-                    api_data_payload_string = raw_data_bytes.decode("utf-8")
-                else:
-                    st.error(f"❌ Server Rejected Call! Status Code: {api_response.status}")
-                conn.close()
+                    if "Upcoming" in sync_mode:
+                        today = current_time_marker.strftime("%Y-%m-%d")
+                        future_end = (current_time_marker + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
+                        endpoint_query = f"/fixtures?league={league_id}&season={target_year}&from={today}&to={future_end}"
+                    else:
+                        endpoint_query = f"/fixtures?league={league_id}&season={target_year}&last=20"
+                        
+                    conn.request("GET", endpoint_query, headers=api_headers)
+                    api_response = conn.getresponse()
+                    
+                    if api_response.status == 200:
+                        raw_data_bytes = api_response.read()
+                        temp_payload_string = raw_data_bytes.decode("utf-8")
+                        
+                        # Inspect the response structure to determine if data strings exist
+                        try:
+                            parsed_check = json.loads(temp_payload_string)
+                            if parsed_check.get("response") and len(parsed_check["response"]) > 0:
+                                api_data_payload_string = temp_payload_string
+                                st.sidebar.info(f"🎯 Successfully extracted data using Season Year: {target_year}")
+                                conn.close()
+                                break
+                        except:
+                            pass
+                    conn.close()
+                    
+                    # If empty data payload array was received, step down target timeline index by exactly one unit year
+                    if not api_data_payload_string:
+                        target_year -= 1
+                        
+                if not api_data_payload_string:
+                    st.warning("⚠️ Warning: Both current and fallback year queries returned zero records from the server endpoint parameters.")
+                    
             except Exception as init_api_err:
                 st.error(f"❌ Connection Handshake Parameters Misconfigured: {init_api_err}")
                 # ==============================================================================
