@@ -130,7 +130,7 @@ if api_sync_triggered:
                     api_params = {"league": str(league_id), "season": str(current_year), "last": "20", "status": "FT"}
                     
                 api_response = requests.get(api_url, headers=api_headers, params=api_params, timeout=15)
-                                if api_response.status_code != 200:
+                if api_response.status_code != 200:
                     st.error(f"❌ Server Connection Rejected! Status Code: {api_response.status_code}. Details: {api_response.text[:150]}")
                 else:
                     res_headers = api_response.headers
