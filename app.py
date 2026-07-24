@@ -501,8 +501,10 @@ with tab_pred:
                 prob_matrix = res["raw_matrix"]
                 
                 over_25_p, btts_yes_p, home_cs_p, away_cs_p = 0.0, 0.0, 0.0, 0.0
-                max_r = prob_matrix.shape
-                max_a = prob_matrix.shape
+                
+                # FIXED: Added explicit explicit dimensions indexing markers ([0] and) to eliminate range iterator tuple errors
+                max_r = prob_matrix.shape[0]
+                max_a = prob_matrix.shape[1]
                 
                 for r_idx in range(max_r):
                     for a_idx in range(max_a):
@@ -514,7 +516,7 @@ with tab_pred:
                         
                 under_25_p, btts_no_p = 1.0 - over_25_p, 1.0 - btts_yes_p
                 
-                # FIXED: Double chance values are vector capped at 1.0 safely
+                # Double chance values are vector capped at 1.0 safely
                 vertical_dc_1X_p = prob_home + prob_draw
                 dc_1X_p = vertical_dc_1X_p if vertical_dc_1X_p <= 1.0 else 1.0
                 vertical_dc_X2_p = prob_draw + prob_away
