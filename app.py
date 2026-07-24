@@ -336,7 +336,7 @@ if uploaded_file is not None:
             
     except Exception as e:
         st.error(f"Manual Ingestion Shield Error: {e}")
-    if st.session_state["api_downloaded_data"] is not None:
+if st.session_state["api_downloaded_data"] is not None:
     st.session_state["api_downloaded_data"].columns = [str(c).strip().lower() for c in st.session_state["api_downloaded_data"].columns]
     full_validation_df = pd.concat([full_validation_df, st.session_state["api_downloaded_data"]], ignore_index=True)
     is_valid_data = True
