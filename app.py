@@ -138,7 +138,7 @@ if api_sync_triggered:
                     
                 api_response = requests.get(api_url, headers=api_headers, params=api_params, timeout=15)
                 with st.sidebar:
-    st.markdown("### 📂 Data Control Room")
+                    st.markdown("### 📂 Data Control Room")
     uploaded_file = st.file_uploader("Upload Master Match CSV", type=["csv"])
     st.markdown("---")
     st.markdown("### 🔑 Free API Automation Sync")
