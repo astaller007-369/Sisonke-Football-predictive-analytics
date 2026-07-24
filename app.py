@@ -1,3 +1,6 @@
+# ==============================================================================
+# SEGMENT 1 OF 9: LIBRARY DEPENDENCIES & ENVIRONMENT INITIALIZATION
+# ==============================================================================
 import os
 import math
 import io
@@ -50,6 +53,47 @@ h3 { color: #facc15; font-weight: 700 !important; margin-top: 25px !important; b
 """
 st.markdown(CUSTOM_DASHBOARD_STYLING, unsafe_allow_html=True)
 st.write("<h1>Sis⚽nke Football Analytics and Prediction</h1>", unsafe_allow_html=True)
+# ==============================================================================
+# SEGMENT 2 OF 9: SESSION STATE MANAGEMENT & MAPPING DICTIONARY
+# ==============================================================================
+
+# Initialize Session State values securely
+if "api_quota_max" not in st.session_state: st.session_state["api_quota_max"] = "100"
+if "api_quota_left" not in st.session_state: st.session_state["api_quota_left"] = "N/A"
+if "api_account_tier" not in st.session_state: st.session_state["api_account_tier"] = "Free Plan Tier"
+if "api_downloaded_data" not in st.session_state: st.session_state["api_downloaded_data"] = None
+if "freeze_matrix" not in st.session_state: st.session_state["freeze_matrix"] = {}
+if "overall_model_accuracy" not in st.session_state: st.session_state["overall_model_accuracy"] = "Calculating..."
+
+# --- LIVE API-FOOTBALL QUOTA AND LIMIT MONITORING TOP ROW PANEL ---
+q_col1, q_col2, q_col3, q_col4 = st.columns(4)
+with q_col1:
+    st.metric("API Daily Ceiling", f"{st.session_state['api_quota_max']} Requests")
+with q_col2:
+    st.metric("Safe Balance Calls", f"{st.session_state['api_quota_left']} Left")
+with q_col3:
+    st.metric("Subscription Tier", f"{st.session_state['api_account_tier']}")
+with q_col4:
+    st.metric("🎯 Database Model Accuracy", f"{st.session_state['overall_model_accuracy']}")
+st.markdown("---")
+
+API_LEAGUE_ID_MAP = {
+    "uefa champions league": 2, "south africa": 288, "england": 39, "scotland": 179, "spain": 140,
+    "germany": 78, "italy": 135, "brazil": 71, "egypt": 233, "usa": 253,
+    "argentina": 128, "austria": 218, "belgium": 144, "china": 169, 
+    "croatia": 210, "denmark": 119, "finland": 244, "iceland": 230, 
+    "netherlands": 88, "norway": 103, "poland": 106, "portugal": 94, "switzerland": 207
+}
+
+REQUIRED_COLUMNS = [
+    "league_country", "match_timestamp", "home_team", "away_team", "home_goals", "away_goals",
+    "home_sot", "away_sot", "home_big_chances", "away_big_chances", "home_box_touches", "away_box_touches",
+    "home_through_passes", "away_through_passes", "home_final_third_entries", "away_final_third_entries",
+    "home_interceptions", "away_interceptions", "home_recoveries", "away_recoveries", "home_saves", "away_saves",
+    "home_ground_duels_won_pct", "away_ground_duels_won_pct", "home_aerial_duels_won_pct", "away_aerial_duels_won_pct",
+    "home_dribbles_won_pct", "away_dribbles_won_pct", "home_tackles_won_pct", "away_tackles_won_pct",
+    "home_passes_final_third_pct", "away_passes_final_third_pct", "home_rest_days", "away_rest_days"
+]
 with st.sidebar:
     st.markdown("### 📂 Data Control Room")
     uploaded_file = st.file_uploader("Upload Master Match CSV", type=["csv"])
@@ -93,142 +137,50 @@ if api_sync_triggered:
                     api_params = {"league": str(league_id), "season": str(current_year), "last": "20", "status": "FT"}
                     
                 api_response = requests.get(api_url, headers=api_headers, params=api_params, timeout=15)
-                # Initialize Session State values securely
-if "api_quota_max" not in st.session_state: st.session_state["api_quota_max"] = "100"
-if "api_quota_left" not in st.session_state: st.session_state["api_quota_left"] = "N/A"
-if "api_account_tier" not in st.session_state: st.session_state["api_account_tier"] = "Free Plan Tier"
-if "api_downloaded_data" not in st.session_state: st.session_state["api_downloaded_data"] = None
-if "freeze_matrix" not in st.session_state: st.session_state["freeze_matrix"] = {}
-if "overall_model_accuracy" not in st.session_state: st.session_state["overall_model_accuracy"] = "Calculating..."
+                with st.sidebar:
+    st.markdown("### 📂 Data Control Room")
+    uploaded_file = st.file_uploader("Upload Master Match CSV", type=["csv"])
+    st.markdown("---")
+    st.markdown("### 🔑 Free API Automation Sync")
+    # HARDCODED API KEY PRE-FILLED ON STARTUP
+    api_token_input = st.text_input("Enter Free API-Football Token Key:", value="4c023480e8ffe2539261cd8746f67121", type="password")
+    target_sync_country = st.selectbox("Select Target Sync Country:", list(API_LEAGUE_ID_MAP.keys()))
+    sync_mode = st.radio("Select Sync Target Scope:", ["Settled Historical Data", "Upcoming 14-Day Fixtures"])
+    api_sync_triggered = st.button("🔄 Run Live League Sync")
+    st.markdown("---")
+    st.markdown("### 🚨 Live Notification Routes")
+    ui_email_recipient = st.text_input("Primary Email:", value="vvuyo007@gmail.com")
+    ui_sms_recipient = st.text_input("Mobile SMS:", value="0750739223@sms.telkom.co.za")
+    ui_google_app_password = st.text_input("Password Key:", type="password", value="your_free_google_app_password")
 
-# --- LIVE API-FOOTBALL QUOTA AND LIMIT MONITORING TOP ROW PANEL ---
-q_col1, q_col2, q_col3, q_col4 = st.columns(4)
-with q_col1:
-    st.metric("API Daily Ceiling", f"{st.session_state['api_quota_max']} Requests")
-with q_col2:
-    st.metric("Safe Balance Calls", f"{st.session_state['api_quota_left']} Left")
-with q_col3:
-    st.metric("Subscription Tier", f"{st.session_state['api_account_tier']}")
-with q_col4:
-    st.metric("🎯 Database Model Accuracy", f"{st.session_state['overall_model_accuracy']}")
-st.markdown("---")
-
-API_LEAGUE_ID_MAP = {
-    "uefa champions league": 2, "south africa": 288, "england": 39, "scotland": 179, "spain": 140,
-    "germany": 78, "italy": 135, "brazil": 71, "egypt": 233, "usa": 253,
-    "argentina": 128, "austria": 218, "belgium": 144, "china": 169, 
-    "croatia": 210, "denmark": 119, "finland": 244, "iceland": 230, 
-    "netherlands": 88, "norway": 103, "poland": 106, "portugal": 94, "switzerland": 207
-}
-
-REQUIRED_COLUMNS = [
-    "league_country", "match_timestamp", "home_team", "away_team", "home_goals", "away_goals",
-    "home_sot", "away_sot", "home_big_chances", "away_big_chances", "home_box_touches", "away_box_touches",
-    "home_through_passes", "away_through_passes", "home_final_third_entries", "away_final_third_entries",
-    "home_interceptions", "away_interceptions", "home_recoveries", "away_recoveries", "home_saves", "away_saves",
-    "home_ground_duels_won_pct", "away_ground_duels_won_pct", "home_aerial_duels_won_pct", "away_aerial_duels_won_pct",
-    "home_dribbles_won_pct", "away_dribbles_won_pct", "home_tackles_won_pct", "away_tackles_won_pct",
-    "home_passes_final_third_pct", "away_passes_final_third_pct", "home_rest_days", "away_rest_days"
-]
-# FIXED: Global variable scope initialization shields downstream loops from out-of-bounds ReferenceErrors
-is_valid_data = False
-
-if uploaded_file is not None:
-    try:
-        uploaded_file.seek(0)
-        raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
-        
-        if raw_lines and len(raw_lines) > 0:
-            # FIXED: Explicit slicing text layout parser prevents Pandas comma tokenization crashes
-            header_line = str(raw_lines[0])
-            headers = header_line.split(",")
-            target_column_count = len(headers)
-            cleaned_lines = [header_line]
-            
-            for line in raw_lines[1:]:
-                if not line.strip():
-                    continue
-                parts = line.split(",")
-                current_count = len(parts)
+# --- LIVE API AUTOMATION LAYER ---
+if api_sync_triggered:
+    if not api_token_input:
+        st.error("⚠️ Token Missing!")
+    else:
+        with st.spinner("Connecting to servers... Executing Volumetric Background Extraction..."):
+            try:
+                league_id = API_LEAGUE_ID_MAP[target_sync_country.lower().strip()]
+                current_year = datetime.datetime.now().year
+                api_url = "https://api-sports.io"
                 
-                if current_count > target_column_count:
-                    repaired_parts = parts[:target_column_count]
-                    cleaned_lines.append(",".join(repaired_parts))
-                elif current_count < target_column_count:
-                    padding_needed = target_column_count - current_count
-                    repaired_parts = parts + [""] * padding_needed
-                    cleaned_lines.append(",".join(repaired_parts))
+                # FIXED: User-Agent defined to securely bypass Cloudflare 403 blocks
+                api_headers = {
+                    "x-rapidapi-key": api_token_input, 
+                    "x-rapidapi-host": "v3.football.api-sports.io",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "application/json"
+                }
+                
+                if "Upcoming" in sync_mode:
+                    today = datetime.datetime.now().strftime("%Y-%m-%d")
+                    future_end = (datetime.datetime.now() + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
+                    api_params = {"league": str(league_id), "season": str(current_year), "from": today, "to": future_end}
                 else:
-                    cleaned_lines.append(line)
+                    api_params = {"league": str(league_id), "season": str(current_year), "last": "20", "status": "FT"}
                     
-            corrected_csv_data = io.StringIO("\n".join(cleaned_lines))
-            manual_upload_df = pd.read_csv(corrected_csv_data, engine='python')
-            
-            # === DYNAMIC SCHEMA TRANSLATION LAYER ===
-            # FIXED: Translates vendor column variances automatically before drop_duplicates calls to prevent KeyErrors
-            ALIGNED_HEADER_TRANSLATION_MAP = {
-                "date": "match_timestamp", "timestamp": "match_timestamp", "time": "match_timestamp",
-                "country": "league_country", "league": "league_country",
-                "home": "home_team", "hometeam": "home_team", "home team": "home_team",
-                "away": "away_team", "awayteam": "away_team", "away team": "away_team",
-                "fthg": "home_goals", "hg": "home_goals", "home goals": "home_goals",
-                "ftag": "away_goals", "ag": "away_goals", "away goals": "away_goals",
-                "hs": "home_sot", "as": "away_sot", "home shots": "home_sot", "away shots": "away_sot"
-            }
-            manual_upload_df.columns = [str(c).strip().lower() for c in manual_upload_df.columns]
-            manual_upload_df.rename(columns=ALIGNED_HEADER_TRANSLATION_MAP, inplace=True)
-            
-            if "league_country" not in manual_upload_df.columns:
-                manual_upload_df["league_country"] = "Imported League"
-            if "match_timestamp" not in manual_upload_df.columns:
-                manual_upload_df["match_timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d")
-            if "home_team" not in manual_upload_df.columns:
-                manual_upload_df["home_team"] = "Home Squad"
-            if "away_team" not in manual_upload_df.columns:
-                manual_upload_df["away_team"] = "Away Squad"
-
-            # === AUTOMATED TIER 2 STRUCTURAL SHIELD ===
-            DEFAULT_TIER2_FALLBACKS = {
-                "home_goals": np.nan, "away_goals": np.nan,
-                "home_sot": 4.0, "away_sot": 3.5,
-                "home_big_chances": 1.2, "away_big_chances": 0.9,
-                "home_box_touches": 16.0, "away_box_touches": 13.0,
-                "home_through_passes": 1.5, "away_through_passes": 1.1,
-                "home_final_third_entries": 32.0, "away_final_third_entries": 28.0,
-                "home_interceptions": 11.0, "away_interceptions": 12.0,
-                "home_recoveries": 48.0, "away_recoveries": 46.0,
-                "home_saves": 2.5, "away_saves": 2.8,
-                "home_ground_duels_won_pct": 0.50, "away_ground_duels_won_pct": 0.50,
-                "home_aerial_duels_won_pct": 0.50, "away_aerial_duels_won_pct": 0.50,
-                "home_dribbles_won_pct": 0.50, "away_dribbles_won_pct": 0.50,
-                "home_tackles_won_pct": 0.52, "away_tackles_won_pct": 0.52,
-                "home_passes_final_third_pct": 0.68, "away_passes_final_third_pct": 0.65,
-                "home_rest_days": 5.0, "away_rest_days": 5.0
-            }
-            
-            tier2_repaired_counter = 0
-            for mandatory_col, fallback_val in DEFAULT_TIER2_FALLBACKS.items():
-                if mandatory_col not in manual_upload_df.columns:
-                    manual_upload_df[mandatory_col] = fallback_val
-                    tier2_repaired_counter += 1
-                else:
-                    manual_upload_df[mandatory_col] = manual_upload_df[mandatory_col].fillna(fallback_val)
-            
-            valid_structural_columns = ["league_country", "match_timestamp", "home_team", "away_team"] + list(DEFAULT_TIER2_FALLBACKS.keys())
-            for col in manual_upload_df.columns:
-                if col not in valid_structural_columns:
-                    manual_upload_df.drop(columns=[col], inplace=True)
-                    
-            full_validation_df = pd.concat([full_validation_df, manual_upload_df], ignore_index=True)
-            is_valid_data = True
-            
-            if tier2_repaired_counter > 0:
-                st.sidebar.warning(f"⚠️ Schema Shield Active: Auto-aligned alternative formatting vectors.")
-            st.sidebar.success(f"Loaded {len(manual_upload_df)} matches successfully!")
-            
-    except Exception as e:
-        st.error(f"Manual Ingestion Shield Error: {e}")
-                        if api_response.status_code != 200:
+                api_response = requests.get(api_url, headers=api_headers, params=api_params, timeout=15)
+                                if api_response.status_code != 200:
                     st.error(f"❌ Server Connection Rejected! Status Code: {api_response.status_code}. Details: {api_response.text[:150]}")
                 else:
                     res_headers = api_response.headers
@@ -329,7 +281,105 @@ if uploaded_file is not None:
                         st.warning("⚠️ No data columns received from the API query parameter combinations.")
             except Exception as api_err:
                 st.error(f"Handshake Timeout or Error: {api_err}")
-                if st.session_state["api_downloaded_data"] is not None:
+                # FIXED: Global variable scope initialization shields downstream loops from out-of-bounds ReferenceErrors
+is_valid_data = False
+
+if uploaded_file is not None:
+    try:
+        uploaded_file.seek(0)
+        raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
+        
+        if raw_lines and len(raw_lines) > 0:
+            # FIXED: Explicit slicing text layout parser prevents Pandas comma tokenization crashes
+            header_line = str(raw_lines[0])
+            headers = header_line.split(",")
+            target_column_count = len(headers)
+            cleaned_lines = [header_line]
+            
+            for line in raw_lines[1:]:
+                if not line.strip():
+                    continue
+                parts = line.split(",")
+                current_count = len(parts)
+                
+                if current_count > target_column_count:
+                    repaired_parts = parts[:target_column_count]
+                    cleaned_lines.append(",".join(repaired_parts))
+                elif current_count < target_column_count:
+                    padding_needed = target_column_count - current_count
+                    repaired_parts = parts + [""] * padding_needed
+                    cleaned_lines.append(",".join(repaired_parts))
+                else:
+                    cleaned_lines.append(line)
+                    
+            corrected_csv_data = io.StringIO("\n".join(cleaned_lines))
+            manual_upload_df = pd.read_csv(corrected_csv_data, engine='python')
+            
+            # === DYNAMIC SCHEMA TRANSLATION LAYER ===
+            # FIXED: Translates vendor column variances automatically before drop_duplicates calls to prevent KeyErrors
+            ALIGNED_HEADER_TRANSLATION_MAP = {
+                "date": "match_timestamp", "timestamp": "match_timestamp", "time": "match_timestamp",
+                "country": "league_country", "league": "league_country",
+                "home": "home_team", "hometeam": "home_team", "home team": "home_team",
+                "away": "away_team", "awayteam": "away_team", "away team": "away_team",
+                "fthg": "home_goals", "hg": "home_goals", "home goals": "home_goals",
+                "ftag": "away_goals", "ag": "away_goals", "away goals": "away_goals",
+                "hs": "home_sot", "as": "away_sot", "home shots": "home_sot", "away shots": "away_sot"
+            }
+            manual_upload_df.columns = [str(c).strip().lower() for c in manual_upload_df.columns]
+            manual_upload_df.rename(columns=ALIGNED_HEADER_TRANSLATION_MAP, inplace=True)
+            
+            if "league_country" not in manual_upload_df.columns:
+                manual_upload_df["league_country"] = "Imported League"
+            if "match_timestamp" not in manual_upload_df.columns:
+                manual_upload_df["match_timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d")
+            if "home_team" not in manual_upload_df.columns:
+                manual_upload_df["home_team"] = "Home Squad"
+            if "away_team" not in manual_upload_df.columns:
+                manual_upload_df["away_team"] = "Away Squad"
+
+            # === AUTOMATED TIER 2 STRUCTURAL SHIELD ===
+            DEFAULT_TIER2_FALLBACKS = {
+                "home_goals": np.nan, "away_goals": np.nan,
+                "home_sot": 4.0, "away_sot": 3.5,
+                "home_big_chances": 1.2, "away_big_chances": 0.9,
+                "home_box_touches": 16.0, "away_box_touches": 13.0,
+                "home_through_passes": 1.5, "away_through_passes": 1.1,
+                "home_final_third_entries": 32.0, "away_final_third_entries": 28.0,
+                "home_interceptions": 11.0, "away_interceptions": 12.0,
+                "home_recoveries": 48.0, "away_recoveries": 46.0,
+                "home_saves": 2.5, "away_saves": 2.8,
+                "home_ground_duels_won_pct": 0.50, "away_ground_duels_won_pct": 0.50,
+                "home_aerial_duels_won_pct": 0.50, "away_aerial_duels_won_pct": 0.50,
+                "home_dribbles_won_pct": 0.50, "away_dribbles_won_pct": 0.50,
+                "home_tackles_won_pct": 0.52, "away_tackles_won_pct": 0.52,
+                "home_passes_final_third_pct": 0.68, "away_passes_final_third_pct": 0.65,
+                "home_rest_days": 5.0, "away_rest_days": 5.0
+            }
+            
+            tier2_repaired_counter = 0
+            for mandatory_col, fallback_val in DEFAULT_TIER2_FALLBACKS.items():
+                if mandatory_col not in manual_upload_df.columns:
+                    manual_upload_df[mandatory_col] = fallback_val
+                    tier2_repaired_counter += 1
+                else:
+                    manual_upload_df[mandatory_col] = manual_upload_df[mandatory_col].fillna(fallback_val)
+            
+            valid_structural_columns = ["league_country", "match_timestamp", "home_team", "away_team"] + list(DEFAULT_TIER2_FALLBACKS.keys())
+            for col in manual_upload_df.columns:
+                if col not in valid_structural_columns:
+                    manual_upload_df.drop(columns=[col], inplace=True)
+                    
+            full_validation_df = pd.concat([full_validation_df, manual_upload_df], ignore_index=True)
+            is_valid_data = True
+            
+            if tier2_repaired_counter > 0:
+                st.sidebar.warning(f"⚠️ Schema Shield Active: Auto-aligned alternative formatting vectors.")
+            st.sidebar.success(f"Loaded {len(manual_upload_df)} matches successfully!")
+            
+    except Exception as e:
+        st.error(f"Manual Ingestion Shield Error: {e}")
+        if st.session_state["api_downloaded_data"] is not None:
     st.session_state["api_downloaded_data"].columns = [str(c).strip().lower() for c in st.session_state["api_downloaded_data"].columns]
     full_validation_df = pd.concat([full_validation_df, st.session_state["api_downloaded_data"]], ignore_index=True)
     is_valid_data = True
