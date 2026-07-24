@@ -96,7 +96,7 @@ REQUIRED_COLUMNS = [
     "home_passes_final_third_pct", "away_passes_final_third_pct", "home_rest_days", "away_rest_days"
 ]
 # ==============================================================================
-# SEGMENT 3 OF 9: SIDEBAR LAYOUT CONFIG & PURE PYTHON API INITIALIZATION
+# SEGMENT 3 OF 9: SIDEBAR LAYOUT CONFIG & PURE FIXTURE ISOLATION ENGINE
 # ==============================================================================
 
 with st.sidebar:
@@ -104,10 +104,13 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Upload Master Match CSV", type=["csv"])
     st.markdown("---")
     st.markdown("### 🔑 Free API Automation Sync")
-    # HARDCODED API KEY PRE-FILLED ON STARTUP
     api_token_input = st.text_input("Enter Free API-Football Token Key:", value="4c023480e8ffe2539261cd8746f67121", type="password")
     target_sync_country = st.selectbox("Select Target Sync Country:", list(API_LEAGUE_ID_MAP.keys()))
     sync_mode = st.radio("Select Sync Target Scope:", ["Settled Historical Data", "Upcoming 14-Day Fixtures"])
+    
+    # FIXED: Added interactive record target selector pre-configured to 20 matches
+    sync_match_limit = st.number_input("Historical Match Sync Volatility Depth:", min_value=5, max_value=50, value=20, step=5)
+    
     api_sync_triggered = st.button("🔄 Run Live League Sync")
     st.markdown("---")
     st.markdown("### 🚨 Live Notification Routes")
@@ -121,26 +124,23 @@ if api_sync_triggered:
     if not api_token_input:
         st.error("⚠️ Token Missing!")
     else:
-        with st.spinner("Connecting via Pure Python HTTPS Socket... Extracting Data..."):
+        with st.spinner("Connecting via Pure Python Socket... Fetching Core Fixture Roster..."):
             try:
                 league_id = API_LEAGUE_ID_MAP[target_sync_country.lower().strip()]
                 current_time_marker = datetime.datetime.now()
                 target_year = current_time_marker.year
                 
-                # FIXED: Adaptive structural array layer automatically loops back through historical timelines 
-                # if modern season clusters have not initialized on server frameworks yet.
                 for attempt in range(2):
                     conn = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=15)
-                    api_headers = {
-                        'x-apisports-key': api_token_input
-                    }
+                    api_headers = {'x-apisports-key': api_token_input}
                     
                     if "Upcoming" in sync_mode:
                         today = current_time_marker.strftime("%Y-%m-%d")
                         future_end = (current_time_marker + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
                         endpoint_query = f"/fixtures?league={league_id}&season={target_year}&from={today}&to={future_end}"
                     else:
-                        endpoint_query = f"/fixtures?league={league_id}&season={target_year}&last=20"
+                        # FIXED: Injected the dynamic 'sync_match_limit' variable directly into the URL path signature
+                        endpoint_query = f"/fixtures?league={league_id}&season={target_year}&last={int(sync_match_limit)}"
                         
                     conn.request("GET", endpoint_query, headers=api_headers)
                     api_response = conn.getresponse()
@@ -149,19 +149,17 @@ if api_sync_triggered:
                         raw_data_bytes = api_response.read()
                         temp_payload_string = raw_data_bytes.decode("utf-8")
                         
-                        # Inspect the response structure to determine if data strings exist
                         try:
                             parsed_check = json.loads(temp_payload_string)
                             if parsed_check.get("response") and len(parsed_check["response"]) > 0:
                                 api_data_payload_string = temp_payload_string
-                                st.sidebar.info(f"🎯 Successfully extracted data using Season Year: {target_year}")
+                                st.sidebar.success(f"🎯 Found fixtures for season campaign: {target_year}")
                                 conn.close()
                                 break
                         except:
                             pass
                     conn.close()
                     
-                    # If empty data payload array was received, step down target timeline index by exactly one unit year
                     if not api_data_payload_string:
                         target_year -= 1
                         
@@ -171,7 +169,7 @@ if api_sync_triggered:
             except Exception as init_api_err:
                 st.error(f"❌ Connection Handshake Parameters Misconfigured: {init_api_err}")
                 # ==============================================================================
-# SEGMENT 4 OF 9: JSON PARSING, TELEMETRY MAPPING & HARD DRIVE DISK STORAGE
+# SEGMENT 4 OF 9: SECONDARY DEEP STATISTICS EXTRACTION LOOP
 # ==============================================================================
 
 if api_sync_triggered and api_data_payload_string:
@@ -180,24 +178,47 @@ if api_sync_triggered and api_data_payload_string:
         compiled_api_rows = []
         
         if "response" in api_data and api_data["response"]:
-            for item in api_data["response"]:
+            total_fixtures = len(api_data["response"])
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            for index, item in enumerate(api_data["response"]):
                 f_meta = item.get("fixture", {})
+                fixture_id = f_meta.get("id")
                 teams = item.get("teams", {})
                 goals = item.get("goals", {})
-                stats_list = item.get("statistics", [])
-                
-                s_dict = {}
-                for s_entry in stats_list:
-                    team_name = s_entry.get("team", {}).get("name")
-                    actual_stats = s_entry.get("statistics", [])
-                    if team_name and actual_stats:
-                        s_dict[team_name] = {st_item["type"]: st_item["value"] for st_item in actual_stats if "type" in st_item}
                 
                 h_name = teams.get("home", {}).get("name", "Unknown Home")
                 a_name = teams.get("away", {}).get("name", "Unknown Away")
-                h_s = s_dict.get(h_name, {})
-                a_s = s_dict.get(a_name, {})
                 
+                status_text.text(f"Querying Dedicated Statistics Endpoint {index+1}/{total_fixtures}: {h_name} vs {a_name}")
+                
+                h_stats_compiled = {}
+                a_stats_compiled = {}
+                
+                if "Upcoming" not in sync_mode and fixture_id:
+                    try:
+                        conn_stats = http.http.client.HTTPSConnection("v3.football.api-sports.io", timeout=10)
+                        stats_headers = {'x-apisports-key': api_token_input}
+                        conn_stats.request("GET", f"/fixtures/statistics?fixture={fixture_id}", headers=stats_headers)
+                        stats_res = conn_stats.getresponse()
+                        
+                        if stats_res.status == 200:
+                            stats_payload = json.loads(stats_res.read().decode("utf-8"))
+                            if "response" in stats_payload and stats_payload["response"]:
+                                for s_team_data in stats_payload["response"]:
+                                    t_name = s_team_data.get("team", {}).get("name")
+                                    raw_stats_list = s_team_data.get("statistics", [])
+                                    mapped_metrics = {stat["type"]: stat["value"] for stat in raw_stats_list if stat.get("type")}
+                                    
+                                    if t_name == h_name:
+                                        h_stats_compiled = mapped_metrics
+                                    elif t_name == a_name:
+                                        a_stats_compiled = mapped_metrics
+                        conn_stats.close()
+                    except:
+                        pass
+
                 def get_pct(w, t):
                     if w is None or t is None: return 0.50
                     try:
@@ -207,40 +228,45 @@ if api_sync_triggered and api_data_payload_string:
                     except: return 0.50
                 
                 row_dict = {
-                    "league_country": target_sync_country, "match_timestamp": f_meta.get("date", datetime.datetime.now().isoformat()),
+                    "league_country": target_sync_country, 
+                    "match_timestamp": f_meta.get("date", datetime.datetime.now().isoformat()),
                     "home_team": h_name, "away_team": a_name,
                     "home_goals": goals.get("home") if goals.get("home") is not None else np.nan,
                     "away_goals": goals.get("away") if goals.get("away") is not None else np.nan,
-                    "home_sot": float(h_s.get("Shots on Goal", 0)) if (h_s.get("Shots on Goal") is not None and "Upcoming" not in sync_mode) else np.nan,
-                    "away_sot": float(a_s.get("Shots on Goal", 0)) if (a_s.get("Shots on Goal") is not None and "Upcoming" not in sync_mode) else np.nan,
-                    "home_big_chances": float(h_s.get("Big Chances Created", 0)) if "Upcoming" not in sync_mode else np.nan,
-                    "away_big_chances": float(a_s.get("Big Chances Created", 0)) if "Upcoming" not in sync_mode else np.nan,
-                    "home_box_touches": float(h_s.get("Touches in Opposition Box", 15)) if "Upcoming" not in sync_mode else np.nan,
-                    "away_box_touches": float(a_s.get("Touches in Opposition Box", 15)) if "Upcoming" not in sync_mode else np.nan,
-                    "home_through_passes": float(h_s.get("Through Passes", 2)) if "Upcoming" not in sync_mode else np.nan,
-                    "away_through_passes": float(a_s.get("Through Passes", 2)) if "Upcoming" not in sync_mode else np.nan,
-                    "home_final_third_entries": float(h_s.get("Final Third Entries", 35)) if "Upcoming" not in sync_mode else np.nan,
-                    "away_final_third_entries": float(a_s.get("Final Third Entries", 35)) if "Upcoming" not in sync_mode else np.nan,
-                    "home_interceptions": float(h_s.get("Interceptions", 12)) if "Upcoming" not in sync_mode else np.nan,
-                    "away_interceptions": float(a_s.get("Interceptions", 12)) if "Upcoming" not in sync_mode else np.nan,
-                    "home_recoveries": float(h_s.get("Ball Recoveries", 45)) if "Upcoming" not in sync_mode else np.nan,
-                    "away_recoveries": float(a_s.get("Ball Recoveries", 45)) if "Upcoming" not in sync_mode else np.nan,
-                    "home_saves": float(h_s.get("Goalkeeper Saves", 2)) if "Upcoming" not in sync_mode else np.nan,
-                    "away_saves": float(a_s.get("Goalkeeper Saves", 2)) if "Upcoming" not in sync_mode else np.nan,
-                    "home_ground_duels_won_pct": get_pct(h_s.get("Ground Duels Won"), h_s.get("Ground Duels Total")),
-                    "away_ground_duels_won_pct": get_pct(a_s.get("Ground Duels Won"), a_s.get("Ground Duels Total")),
-                    "home_aerial_duels_won_pct": get_pct(h_s.get("Aerial Duels Won"), h_s.get("Aerial Duels Total")),
-                    "away_aerial_duels_won_pct": get_pct(a_s.get("Aerial Duels Won"), a_s.get("Aerial Duels Total")),
-                    "home_dribbles_won_pct": get_pct(h_s.get("Successful Dribbles"), h_s.get("Total Dribbles")),
-                    "away_dribbles_won_pct": get_pct(h_s.get("Successful Dribbles"), h_s.get("Total Dribbles")),
-                    "home_tackles_won_pct": get_pct(h_s.get("Tackles Won"), h_s.get("Total Tackles")),
-                    "away_tackles_won_pct": get_pct(a_s.get("Tackles Won"), a_s.get("Total Tackles")),
-                    "home_passes_final_third_pct": get_pct(h_s.get("Passes Accurate"), h_s.get("Total Passes")),
-                    "away_passes_final_third_pct": get_pct(a_s.get("Passes Accurate"), f"{h_s.get('Total Passes', 1)}") if "Upcoming" in sync_mode else get_pct(a_s.get("Passes Accurate"), a_s.get("Total Passes")),
+                    "home_sot": float(h_stats_compiled.get("Shots on Goal", 4.0)) if h_stats_compiled.get("Shots on Goal") is not None else np.nan,
+                    "away_sot": float(a_stats_compiled.get("Shots on Goal", 3.5)) if a_stats_compiled.get("Shots on Goal") is not None else np.nan,
+                    "home_big_chances": float(h_stats_compiled.get("Big Chances Created", 1.2)) if "Upcoming" not in sync_mode else np.nan,
+                    "away_big_chances": float(a_stats_compiled.get("Big Chances Created", 0.9)) if "Upcoming" not in sync_mode else np.nan,
+                    "home_box_touches": float(h_stats_compiled.get("Touches in Opposition Box", 16)) if "Upcoming" not in sync_mode else np.nan,
+                    "away_box_touches": float(a_stats_compiled.get("Touches in Opposition Box", 13)) if "Upcoming" not in sync_mode else np.nan,
+                    "home_through_passes": float(h_stats_compiled.get("Through Passes", 1.5)) if "Upcoming" not in sync_mode else np.nan,
+                    "away_through_passes": float(a_stats_compiled.get("Through Passes", 1.1)) if "Upcoming" not in sync_mode else np.nan,
+                    "home_final_third_entries": float(h_stats_compiled.get("Final Third Entries", 32)) if "Upcoming" not in sync_mode else np.nan,
+                    "away_final_third_entries": float(a_stats_compiled.get("Final Third Entries", 28)) if "Upcoming" not in sync_mode else np.nan,
+                    "home_interceptions": float(h_stats_compiled.get("Interceptions", 11)) if "Upcoming" not in sync_mode else np.nan,
+                    "away_interceptions": float(a_stats_compiled.get("Interceptions", 12)) if "Upcoming" not in sync_mode else np.nan,
+                    "home_recoveries": float(h_stats_compiled.get("Ball Recoveries", 48)) if "Upcoming" not in sync_mode else np.nan,
+                    "away_recoveries": float(a_stats_compiled.get("Ball Recoveries", 46)) if "Upcoming" not in sync_mode else np.nan,
+                    "home_saves": float(h_stats_compiled.get("Goalkeeper Saves", 2.5)) if "Upcoming" not in sync_mode else np.nan,
+                    "away_saves": float(a_stats_compiled.get("Goalkeeper Saves", 2.8)) if "Upcoming" not in sync_mode else np.nan,
+                    "home_ground_duels_won_pct": get_pct(h_stats_compiled.get("Ground Duels Won"), h_stats_compiled.get("Ground Duels Total")),
+                    "away_ground_duels_won_pct": get_pct(a_stats_compiled.get("Ground Duels Won"), a_stats_compiled.get("Ground Duels Total")),
+                    "home_aerial_duels_won_pct": get_pct(h_stats_compiled.get("Aerial Duels Won"), h_stats_compiled.get("Aerial Duels Total")),
+                    "away_aerial_duels_won_pct": get_pct(a_stats_compiled.get("Aerial Duels Won"), a_stats_compiled.get("Aerial Duels Total")),
+                    "home_dribbles_won_pct": get_pct(h_stats_compiled.get("Successful Dribbles"), h_stats_compiled.get("Total Dribbles")),
+                    "away_dribbles_won_pct": get_pct(h_stats_compiled.get("Successful Dribbles"), h_stats_compiled.get("Total Dribbles")),
+                    "home_tackles_won_pct": get_pct(h_stats_compiled.get("Tackles Won"), h_stats_compiled.get("Total Tackles")),
+                    "away_tackles_won_pct": get_pct(a_stats_compiled.get("Tackles Won"), a_stats_compiled.get("Total Tackles")),
+                    "home_passes_final_third_pct": get_pct(h_stats_compiled.get("Passes Accurate"), h_stats_compiled.get("Total Passes")),
+                    "away_passes_final_third_pct": get_pct(a_stats_compiled.get("Passes Accurate"), a_stats_compiled.get("Total Passes")),
                     "home_rest_days": 5, "away_rest_days": 5
                 }
                 compiled_api_rows.append(row_dict)
+                progress_bar.progress((index + 1) / total_fixtures)
                 
+            status_text.empty()
+            progress_bar.empty()
+            
         if compiled_api_rows:
             new_api_df = pd.DataFrame(compiled_api_rows)
             st.session_state["api_downloaded_data"] = new_api_df
@@ -252,7 +278,7 @@ if api_sync_triggered and api_data_payload_string:
                     combined_disk_df = pd.concat([existing_disk_df, new_api_df], ignore_index=True)
                     combined_disk_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
                     combined_disk_df.to_csv(storage_path, index=False)
-                    st.sidebar.success("💾 Server disk copy updated smoothly.")
+                    st.sidebar.success("💾 Local master CSV database copy updated smoothly.")
                 except Exception as disk_err:
                     st.sidebar.error(f"Write failure: {disk_err}")
             else:
