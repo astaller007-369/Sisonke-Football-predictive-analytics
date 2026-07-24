@@ -125,10 +125,9 @@ if api_sync_triggered:
                 current_year = datetime.datetime.now().year
                 api_url = "https://api-sports.io"
                 
-                # FIXED: Expanded browser simulation header matrix cleanly bypasses Cloudflare anti-bot blocks
+                # FIXED: Swapped 'x-rapidapi-key' with 'x-apisports-key' to prevent Cloudflare 403 authorization rejects
                 api_headers = {
-                    "x-rapidapi-key": api_token_input, 
-                    "x-rapidapi-host": "v3.football.api-sports.io",
+                    "x-apisports-key": api_token_input,
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
                     "Accept": "application/json, text/plain, */*",
                     "Accept-Language": "en-US,en;q=0.9",
@@ -144,6 +143,7 @@ if api_sync_triggered:
                     api_params = {"league": str(league_id), "season": str(current_year), "last": "20", "status": "FT"}
                     
                 api_response = requests.get(api_url, headers=api_headers, params=api_params, timeout=15)
+            # FIXED: Safely intercepting parameter gathering exceptions before moving into the data extractor layer
             except Exception as init_api_err:
                 st.error(f"❌ Connection Handshake Parameters Misconfigured: {init_api_err}")
                 # ==============================================================================
@@ -258,7 +258,7 @@ if api_sync_triggered and 'api_response' in locals() and api_response is not Non
 # SEGMENT 5 OF 9: CSV SCHEMA TRANSLATION ENGINE & AUTOMATED TIER-2 SHIELD
 # ==============================================================================
 
-# FIXED: Defining base placeholder variables globally prevents downstream upload reference crashes
+# FIXED: Global scoping assignment definitions prevent manual ingestion thread initialization NameErrors
 full_validation_df = pd.DataFrame()
 is_valid_data = False
 storage_path = "master_sisonke_database.csv"
@@ -269,7 +269,7 @@ if uploaded_file is not None:
         raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
         
         if raw_lines and len(raw_lines) > 0:
-            header_line = str(raw_lines[0])
+            header_line = str(raw_lines)
             headers = header_line.split(",")
             target_column_count = len(headers)
             cleaned_lines = [header_line]
@@ -365,7 +365,7 @@ if st.session_state["api_downloaded_data"] is not None:
     full_validation_df = pd.concat([full_validation_df, st.session_state["api_downloaded_data"]], ignore_index=True)
     is_valid_data = True
 
-# FIXED: Re-instated disk validation cache checks cleanly without repeating baseline definitions
+# FIXED: Re-instated drive checks update tracking loops when backend pipelines run dry
 if os.path.exists(storage_path) and not is_valid_data:
     try:
         full_validation_df = pd.read_csv(storage_path)
@@ -502,7 +502,7 @@ with tab_pred:
                 
                 over_25_p, btts_yes_p, home_cs_p, away_cs_p = 0.0, 0.0, 0.0, 0.0
                 
-                # FIXED: Added explicit explicit dimensions indexing markers ([0] and) to eliminate range iterator tuple errors
+                # FIXED: Isolated integer shape coordinates [0] and [1] to avoid tuple range type crash loops
                 max_r = prob_matrix.shape[0]
                 max_a = prob_matrix.shape[1]
                 
@@ -588,11 +588,10 @@ with tab_pred:
                         value_status_tag = "🔥 HIGH VALUE"
                         premium_elite_kelly = round(raw_individual_kelly * 0.25 * 100, 2)
                         calculated_stake_allocation_pct = max(0.5, min(5.0, premium_elite_kelly))
-                        # Uniform 5-element format mapping prevents system dimension crash triggers
+                        # Length-5 mapping uniform structure blocks dashboard sorting failures
                         qualified_projections.append((label, calculated_ev, m_prob, b_odds, calculated_stake_allocation_pct))
                     elif calculated_ev > 0.0:
                         value_status_tag = "📊 ACCEPTABLE VALUE (MONITOR)"
-                        # Uniform 5-element format avoids sort unpacking errors
                         qualified_projections.append((label, calculated_ev, m_prob, b_odds, calculated_stake_allocation_pct))
                     else:
                         value_status_tag = "❌ NO BET"
@@ -666,9 +665,9 @@ with tab_pred:
                         st.info("No single scoreline variant has crossed the baseline evaluation limit.")
                 
                 if qualified_projections and confidence >= confidence_floor_input:
-                    # Explicit row sorting isolates high-profit indexes safely
-                    qualified_projections.sort(key=lambda x: x, reverse=True)
-                    best_pick, best_ev, best_prob, best_odds, fractional_scale_stake = qualified_projections
+                    # Explicit row sorting lambda isolates high-profit indicators safely
+                    qualified_projections.sort(key=lambda x: x[1], reverse=True)
+                    best_pick, best_ev, best_prob, best_odds, fractional_scale_stake = qualified_projections[0]
                     optimal_bet = best_pick
                     bet_rec = "🔥 HIGH BET (KELLY MAXIMUM)" if best_ev >= 0.071 else "📊 MONITOR POSITION"
                 else: 
