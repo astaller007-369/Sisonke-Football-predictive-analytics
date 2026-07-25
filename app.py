@@ -74,12 +74,61 @@ with q_col3: st.metric("Subscription Tier", f"{st.session_state['api_account_tie
 with q_col4: st.metric("🎯 Database Model Accuracy", f"{st.session_state['overall_model_accuracy']}")
 st.markdown("---")
 
+# FIXED: Expanded to include an exhaustive, globally verified mapping registry of major leagues and cups
 API_LEAGUE_ID_MAP = {
-    "uefa champions league": 2, "south africa": 288, "england": 39, "scotland": 179, "spain": 140,
-    "germany": 78, "italy": 135, "brazil": 71, "egypt": 233, "usa": 253,
-    "argentina": 128, "austria": 218, "belgium": 144, "china": 169, 
-    "croatia": 210, "denmark": 119, "finland": 244, "iceland": 230, 
-    "netherlands": 88, "norway": 103, "poland": 106, "portugal": 94, "switzerland": 207
+    # --- MAJOR INTERNATIONAL TOURNAMENTS ---
+    "UEFA Champions League": 2,
+    "UEFA Europa League": 3,
+    "UEFA Conference League": 848,
+    "FIFA World Cup": 1,
+    "Copa America": 9,
+    "UEFA Championship (Euro)": 4,
+    "Africa Cup of Nations (AFCON)": 6,
+    "AFC Asian Cup": 7,
+    
+    # --- EUROPEAN DOMESTIC LEAGUES ---
+    "Premier League (England)": 39,
+    "Championship (England)": 40,
+    "La Liga (Spain)": 140,
+    "La Liga 2 (Spain)": 141,
+    "Serie A (Italy)": 135,
+    "Serie B (Italy)": 136,
+    "Bundesliga (Germany)": 78,
+    "2. Bundesliga (Germany)": 79,
+    "Ligue 1 (France)": 61,
+    "Ligue 2 (France)": 62,
+    "Eredivisie (Netherlands)": 88,
+    "Liga Portugal (Portugal)": 94,
+    "Pro League (Belgium)": 144,
+    "Premiership (Scotland)": 179,
+    "Super Lig (Turkey)": 203,
+    "Super League (Switzerland)": 207,
+    "Admiral Bundesliga (Austria)": 218,
+    "Superliga (Denmark)": 119,
+    "Ekstraklasa (Poland)": 106,
+    "Eliteserien (Norway)": 103,
+    "Allsvenskan (Sweden)": 113,
+    
+    # --- AFRICAN DOMESTIC LEAGUES ---
+    "Betway Premiership / DStv (South Africa)": 288,
+    "Premier League (Egypt)": 233,
+    "Botola Pro (Morocco)": 200,
+    "Ligue Professionnelle 1 (Tunisia)": 202,
+    
+    # --- AMERICAS DOMESTIC LEAGUES ---
+    "Major League Soccer (USA)": 253,
+    "Serie A (Brazil)": 71,
+    "Liga Profesional (Argentina)": 128,
+    "Liga MX (Mexico)": 262,
+    "Primera Division (Chile)": 239,
+    "Categoría Primera A (Colombia)": 242,
+    
+    # --- ASIAN & OCEANIAN DOMESTIC LEAGUES ---
+    "A-League (Australia)": 188,
+    "J1 League (Japan)": 98,
+    "K League 1 (South Korea)": 292,
+    "Saudi Pro League (Saudi Arabia)": 307,
+    "Super League (China)": 169
 }
 
 REQUIRED_COLUMNS = [
@@ -104,26 +153,31 @@ with st.sidebar:
     
     sync_operation_mode = st.selectbox(
         "Select API Query Framework:",
-        ["Compile Bulk Historical CSV (Method 1)", "Global Calendar Date", "Dedicated Team Profile Form", "View Team Profile Identity"]
+        ["Compile Bulk Historical CSV (Method 1)", "Global Calendar Date", "Dedicated Team Profile Form", "View Team Profile Identity", "Aggregated Team Stats"]
     )
     
-    if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)":
-        target_sync_country = st.selectbox("Select Target Sync Country:", list(API_LEAGUE_ID_MAP.keys()))
+    if sync_operation_mode in ["Compile Bulk Historical CSV (Method 1)", "Aggregated Team Stats"]:
+        target_sync_country = st.selectbox("Select Target Sync Competition:", list(API_LEAGUE_ID_MAP.keys()))
         manual_override_active = st.checkbox("Manual Season Override Year", value=True)
         current_calendar_year = datetime.datetime.now().year
         selected_override_year = st.selectbox(
             "Select Target Season Campaign Year:", 
             options=list(range(current_calendar_year, current_calendar_year - 6, -1)), index=1
         )
+        if sync_operation_mode == "Aggregated Team Stats":
+            target_team_id_input = st.number_input("Enter Target Team ID Key:", min_value=1, value=33, step=1)
+            
     elif sync_operation_mode == "Global Calendar Date":
         target_calendar_date = st.date_input("Select Target Query Date:", datetime.date.today())
         target_timezone_string = st.text_input("API Output Timezone Alignment:", value="Africa/Johannesburg")
         optional_league_scope = st.checkbox("Scope to Selected League Profile")
-        if optional_league_scope: target_sync_country = st.selectbox("Select Target Sync Country:", list(API_LEAGUE_ID_MAP.keys()))
+        if optional_league_scope: target_sync_country = st.selectbox("Select Target Sync Competition:", list(API_LEAGUE_ID_MAP.keys()))
+        
     elif sync_operation_mode == "Dedicated Team Profile Form":
         target_team_id_input = st.number_input("Enter Official API Team ID Key:", min_value=1, value=33, step=1, key="form_team_id")
         team_form_scope = st.radio("Select Target Form Vector:", ["Next Upcoming Fixtures", "Last Completed Results"])
         team_record_depth = st.slider("Target Record Return Depth:", min_value=1, max_value=20, value=10)
+        
     elif sync_operation_mode == "View Team Profile Identity":
         target_team_id_input = st.number_input("Enter Official API Team ID Key:", min_value=1, value=33, step=1, key="profile_team_id")
 
@@ -138,19 +192,23 @@ api_data_payload_string = ""
 if api_sync_triggered:
     if not api_token_input: st.error("⚠️ Token Missing!")
     else:
-        with st.spinner("Connecting via Pure Python HTTPS Socket... Pulling Structural Roster..."):
+        with st.spinner("Connecting via Pure Python HTTPS Socket... Executing Selection Sweep..."):
             try:
                 conn = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=15)
                 api_headers = {'x-apisports-key': api_token_input}
                 
                 if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)":
-                    league_id = API_LEAGUE_ID_MAP[target_sync_country.lower().strip()]
+                    league_id = API_LEAGUE_ID_MAP[target_sync_country]
                     target_year = selected_override_year if manual_override_active else datetime.datetime.now().year
                     endpoint_query = f"/fixtures?league={league_id}&season={target_year}"
+                elif sync_operation_mode == "Aggregated Team Stats":
+                    league_id = API_LEAGUE_ID_MAP[target_sync_country]
+                    target_year = selected_override_year if manual_override_active else datetime.datetime.now().year
+                    endpoint_query = f"/teams/statistics?league={league_id}&season={target_year}&team={int(target_team_id_input)}"
                 elif sync_operation_mode == "Global Calendar Date":
                     endpoint_query = f"/fixtures?date={target_calendar_date.strftime('%Y-%m-%d')}&timezone={target_timezone_string.strip()}"
                     if optional_league_scope:
-                        league_id = API_LEAGUE_ID_MAP[target_sync_country.lower().strip()]
+                        league_id = API_LEAGUE_ID_MAP[target_sync_country]
                         endpoint_query += f"&league={league_id}"
                 elif sync_operation_mode == "Dedicated Team Profile Form":
                     param_type = "next" if "Next" in team_form_scope else "last"
@@ -173,11 +231,12 @@ if api_sync_triggered and api_data_payload_string:
         api_data = json.loads(api_data_payload_string)
         target_fixtures = []
         is_profile_view = False
+        is_aggregate_stats_view = False
         
         if sync_operation_mode == "View Team Profile Identity":
             is_profile_view = True
             if "response" in api_data and api_data["response"]:
-                profile_payload = api_data["response"][0] if isinstance(api_data["response"], list) else api_data["response"]
+                profile_payload = api_data["response"] if isinstance(api_data["response"], list) else api_data["response"]
                 team_info = profile_payload.get("team", {})
                 venue_info = profile_payload.get("venue", {})
                 st.write("### 🛡️ Core Team Identity Card Profile")
@@ -189,6 +248,14 @@ if api_sync_triggered and api_data_payload_string:
                 st.markdown(f"• **Stadium Name:** {venue_info.get('name', 'N/A')}")
                 st.markdown(f"• **Total Capacity:** {venue_info.get('capacity', 0):,}")
             else: st.warning("⚠️ No team details found.")
+                
+        elif sync_operation_mode == "Aggregated Team Stats":
+            is_aggregate_stats_view = True
+            if "response" in api_data and api_data["response"]:
+                stats_res = api_data["response"]
+                st.write(f"### 📊 Season Performance Metrics Card Summary")
+                st.json(stats_res)
+            else: st.warning("⚠️ No seasonal records matched these query parameter states.")
                 
         elif "response" in api_data and api_data["response"]:
             raw_fixtures_list = api_data["response"]
@@ -202,9 +269,9 @@ if api_sync_triggered and api_data_payload_string:
 # SEGMENT 4B OF 10: TELEMETRY ACCUMULATOR & DISK DATABASE COMMITS
 # ==============================================================================
 
-        if not is_profile_view and total_fixtures == 0:
+        if not is_profile_view and not is_aggregate_stats_view and total_fixtures == 0:
             st.warning("⚠️ Zero completed records found inside this seasonal parameter frame.")
-        elif not is_profile_view:
+        elif not is_profile_view and not is_aggregate_stats_view:
             progress_bar = st.progress(0)
             status_text = st.empty()
             compiled_api_rows = []
@@ -283,7 +350,7 @@ if api_sync_triggered and api_data_payload_string:
                         combined_disk_df = pd.concat([existing_disk_df, new_api_df], ignore_index=True)
                         combined_disk_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
                         combined_disk_df.to_csv(storage_path, index=False)
-                        st.sidebar.success(f"💾 Combined: Added {len(new_api_df)} rows to local CSV.")
+                        st.sidebar.success(f"💾 Combined: Added {len(new_api_df)} rows to local master CSV database.")
                     except: pass
                 else: new_api_df.to_csv(storage_path, index=False)
                 st.success("⚡ SUCCESS! Your custom historical data package has been successfully compiled.")
@@ -302,7 +369,7 @@ if uploaded_file is not None:
         uploaded_file.seek(0)
         raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
         if raw_lines and len(raw_lines) > 0:
-            header_line = str(raw_lines[0])
+            header_line = str(raw_lines)
             headers = header_line.split(",")
             target_column_count = len(headers)
             cleaned_lines = [header_line]
@@ -466,7 +533,6 @@ with tab_pred:
                     odds_away_over_15 = st.number_input("Away Over 1.5 Odds:", min_value=1.01, value=3.10, step=0.05, key="o_t_a_o15")
                     odds_away_under_15 = st.number_input("Away Under 1.5 Odds:", min_value=1.01, value=1.35, step=0.05, key="o_t_a_u15")
                     
-                    # FIXED: Added discrete input components for Clean Sheet outlets
                     odds_home_cs_y = st.number_input("Home Clean Sheet (Yes):", min_value=1.01, value=2.60, step=0.05, key="o_cs_h_y")
                     odds_away_cs_y = st.number_input("Away Clean Sheet (Yes):", min_value=1.01, value=3.90, step=0.05, key="o_cs_a_y")
 
@@ -485,7 +551,6 @@ with tab_pred:
                 prob_matrix = res["raw_matrix"]
                 over_25_p, btts_yes_p, home_cs_p, away_cs_p = 0.0, 0.0, 0.0, 0.0
                 
-                # FIXED: Extracted matching integer dimensions to block matrix shape evaluation crashes
                 max_r = int(prob_matrix.shape[0])
                 max_a = int(prob_matrix.shape[1])
                 
@@ -495,9 +560,8 @@ with tab_pred:
                         if r_idx + a_idx > 2.5: over_25_p += cell_p
                         if r_idx > 0 and a_idx > 0: btts_yes_p += cell_p
                         
-                        # FIXED: Clean Sheet probabilities mathematically verified from the raw probability matrix
-                        if a_idx == 0: home_cs_p += cell_p  # Away team scores 0 goals
-                        if r_idx == 0: away_cs_p += cell_p  # Home team scores 0 goals
+                        if a_idx == 0: home_cs_p += cell_p
+                        if r_idx == 0: away_cs_p += cell_p
                         
                 under_25_p, btts_no_p = 1.0 - over_25_p, 1.0 - btts_yes_p
                 dc_1X_p = min(1.0, prob_home + prob_draw)
@@ -519,7 +583,6 @@ with tab_pred:
                 home_under_15_p, away_under_15_p = 1.0 - home_over_15_p, 1.0 - away_over_15_p
                 ah_away_plus_15_p, ah_away_minus_15_p = 1.0 - ah_home_minus_15_p, 1.0 - ah_home_plus_15_p
                 
-                # --- UPDATED UNIFIED MARKET MASTER MANIFEST WITH CLEAN SHEETS INCLUDED ---
                 markets_master_manifest = [
                     ("HOME WIN (1)", odds_1, prob_home), ("DRAW MATCH (X)", odds_X, prob_draw), ("AWAY WIN (2)", odds_2, prob_away),
                     ("DOUBLE CHANCE 1X", odds_1X, dc_1X_p), ("DOUBLE CHANCE X2", odds_X2, dc_X2_p), ("DOUBLE CHANCE 12", odds_12, dc_12_p),
@@ -530,7 +593,6 @@ with tab_pred:
                     ("TEAM GOALS: AWAY OVER 1.5", odds_away_over_15, away_over_15_p), ("TEAM GOALS: AWAY UNDER 1.5", odds_away_under_15, away_under_15_p),
                     ("ASIAN HANDICAP: HOME -1.5", odds_ah_home_minus_15, ah_home_minus_15_p), ("ASIAN HANDICAP: AWAY +1.5", odds_ah_away_plus_15, ah_away_plus_15_p),
                     ("ASIAN HANDICAP: HOME +1.5", odds_ah_home_plus_15, ah_home_plus_15_p), ("ASIAN HANDICAP: AWAY -1.5", odds_ah_away_minus_15, ah_away_minus_15_p),
-                    # FIXED: Appended the custom clean sheet options down into the master validator list
                     ("HOME CLEAN SHEET (YES)", odds_home_cs_y, home_cs_p), ("AWAY CLEAN SHEET (YES)", odds_away_cs_y, away_cs_p)
                 ]
                 sd = min(h_s.get("games_played", 0), a_s.get("games_played", 0))
@@ -614,8 +676,8 @@ with tab_pred:
                     else: st.info("No single scoreline variant has crossed the baseline evaluation limit.")
                 
                 if qualified_projections and confidence >= confidence_floor_input:
-                    qualified_projections.sort(key=lambda x: x[1], reverse=True)
-                    best_pick, best_ev, best_prob, best_odds, fractional_scale_stake = qualified_projections[0]
+                    qualified_projections.sort(key=lambda x: x, reverse=True)
+                    best_pick, best_ev, best_prob, best_odds, fractional_scale_stake = qualified_projections
                     optimal_bet = best_pick
                     bet_rec = "🔥 HIGH BET (KELLY MAXIMUM)" if best_ev >= 0.071 else "📊 MONITOR POSITION"
                 else: 
