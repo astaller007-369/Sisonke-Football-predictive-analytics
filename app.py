@@ -1,5 +1,5 @@
 # ==============================================================================
-# SEGMENT 1 OF 10: LIBRARY DEPENDENCIES & ENVIRONMENT INITIALIZATION
+# SEGMENT 1 OF 12: LIBRARY DEPENDENCIES & ENVIRONMENT INITIALIZATION
 # ==============================================================================
 import os
 import math
@@ -15,8 +15,6 @@ import smtplib
 from email.mime.text import MIMEText
 
 # --- CRITICAL ARCHITECTURAL SAFEGUARD ---
-# Mocking main_engine functions to prevent compilation crashes if main_engine.py is missing.
-# In production, replace this mock block with: import main_engine as engine
 class MockEngine:
     COMPETITION_MATRIX = {}
     def generate_dynamic_league_table(self, df): 
@@ -36,10 +34,8 @@ try:
 except ImportError:
     engine = MockEngine()
 
-# Initialize widescreen desktop-free cloud layout environment configurations
 st.set_page_config(page_title="Sisonke Football Analytics and Prediction", page_icon="⚽", layout="wide")
 
-# Secure layout styling layer with native performance enhancements
 CUSTOM_DASHBOARD_STYLING = """
 <style>
 .stApp { background-color: #0b0f19; color: #f1f5f9; }
@@ -55,10 +51,9 @@ h3 { color: #facc15; font-weight: 700 !important; margin-top: 25px !important; b
 st.markdown(CUSTOM_DASHBOARD_STYLING, unsafe_allow_html=True)
 st.write("<h1>Sis⚽nke Football Analytics and Prediction</h1>", unsafe_allow_html=True)
 # ==============================================================================
-# SEGMENT 2 OF 10: SESSION STATE MANAGEMENT & MAPPING DICTIONARY
+# SEGMENT 2 OF 12: SESSION STATE MANAGEMENT & MAPPING DICTIONARY
 # ==============================================================================
 
-# Initialize Session State values securely
 if "api_quota_max" not in st.session_state: st.session_state["api_quota_max"] = "100"
 if "api_quota_left" not in st.session_state: st.session_state["api_quota_left"] = "N/A"
 if "api_account_tier" not in st.session_state: st.session_state["api_account_tier"] = "Free Plan Tier"
@@ -66,7 +61,10 @@ if "api_downloaded_data" not in st.session_state: st.session_state["api_download
 if "freeze_matrix" not in st.session_state: st.session_state["freeze_matrix"] = {}
 if "overall_model_accuracy" not in st.session_state: st.session_state["overall_model_accuracy"] = "Calculating..."
 
-# --- LIVE API-FOOTBALL QUOTA AND LIMIT MONITORING TOP ROW PANEL ---
+# --- NEW: BANKROLL INITIALIZATION LAYER ---
+if "simulated_bankroll_balance" not in st.session_state: st.session_state["simulated_bankroll_balance"] = 10000.00
+if "bankroll_transaction_ledger" not in st.session_state: st.session_state["bankroll_transaction_ledger"] = []
+
 q_col1, q_col2, q_col3, q_col4 = st.columns(4)
 with q_col1: st.metric("API Daily Ceiling", f"{st.session_state['api_quota_max']} Requests")
 with q_col2: st.metric("Safe Balance Calls", f"{st.session_state['api_quota_left']} Left")
@@ -74,61 +72,16 @@ with q_col3: st.metric("Subscription Tier", f"{st.session_state['api_account_tie
 with q_col4: st.metric("🎯 Database Model Accuracy", f"{st.session_state['overall_model_accuracy']}")
 st.markdown("---")
 
-# FIXED: Expanded to include an exhaustive, globally verified mapping registry of major leagues and cups
 API_LEAGUE_ID_MAP = {
-    # --- MAJOR INTERNATIONAL TOURNAMENTS ---
-    "UEFA Champions League": 2,
-    "UEFA Europa League": 3,
-    "UEFA Conference League": 848,
-    "FIFA World Cup": 1,
-    "Copa America": 9,
-    "UEFA Championship (Euro)": 4,
-    "Africa Cup of Nations (AFCON)": 6,
-    "AFC Asian Cup": 7,
-    
-    # --- EUROPEAN DOMESTIC LEAGUES ---
     "Premier League (England)": 39,
-    "Championship (England)": 40,
+    "DStv Premiership (South Africa)": 288,
     "La Liga (Spain)": 140,
-    "La Liga 2 (Spain)": 141,
     "Serie A (Italy)": 135,
-    "Serie B (Italy)": 136,
     "Bundesliga (Germany)": 78,
-    "2. Bundesliga (Germany)": 79,
     "Ligue 1 (France)": 61,
-    "Ligue 2 (France)": 62,
-    "Eredivisie (Netherlands)": 88,
-    "Liga Portugal (Portugal)": 94,
-    "Pro League (Belgium)": 144,
-    "Premiership (Scotland)": 179,
-    "Super Lig (Turkey)": 203,
-    "Super League (Switzerland)": 207,
-    "Admiral Bundesliga (Austria)": 218,
-    "Superliga (Denmark)": 119,
-    "Ekstraklasa (Poland)": 106,
-    "Eliteserien (Norway)": 103,
-    "Allsvenskan (Sweden)": 113,
-    
-    # --- AFRICAN DOMESTIC LEAGUES ---
-    "Betway Premiership / DStv (South Africa)": 288,
-    "Premier League (Egypt)": 233,
-    "Botola Pro (Morocco)": 200,
-    "Ligue Professionnelle 1 (Tunisia)": 202,
-    
-    # --- AMERICAS DOMESTIC LEAGUES ---
-    "Major League Soccer (USA)": 253,
     "Serie A (Brazil)": 71,
-    "Liga Profesional (Argentina)": 128,
-    "Liga MX (Mexico)": 262,
-    "Primera Division (Chile)": 239,
-    "Categoría Primera A (Colombia)": 242,
-    
-    # --- ASIAN & OCEANIAN DOMESTIC LEAGUES ---
-    "A-League (Australia)": 188,
-    "J1 League (Japan)": 98,
-    "K League 1 (South Korea)": 292,
-    "Saudi Pro League (Saudi Arabia)": 307,
-    "Super League (China)": 169
+    "Major League Soccer (USA)": 253,
+    "UEFA Champions League": 2
 }
 
 REQUIRED_COLUMNS = [
@@ -141,7 +94,7 @@ REQUIRED_COLUMNS = [
     "home_passes_final_third_pct", "away_passes_final_third_pct", "home_rest_days", "away_rest_days"
 ]
 # ==============================================================================
-# SEGMENT 3 OF 10: SIDEBAR CONTROLS & BULK SEASONAL INGESTION ENGINE
+# SEGMENT 3 OF 12: SIDEBAR CONTROLS & PLAN-CALIBRATED ROUTER
 # ==============================================================================
 
 with st.sidebar:
@@ -158,11 +111,11 @@ with st.sidebar:
     
     if sync_operation_mode in ["Compile Bulk Historical CSV (Method 1)", "Aggregated Team Stats"]:
         target_sync_country = st.selectbox("Select Target Sync Competition:", list(API_LEAGUE_ID_MAP.keys()))
+        sync_target_scope = st.radio("Select Sync Data Target Window:", ["Settled Historical Data", "Upcoming 30-Day Fixtures (NS)"])
         manual_override_active = st.checkbox("Manual Season Override Year", value=True)
-        current_calendar_year = datetime.datetime.now().year
         selected_override_year = st.selectbox(
             "Select Target Season Campaign Year:", 
-            options=list(range(current_calendar_year, current_calendar_year - 6, -1)), index=1
+            options=[2024, 2023, 2022], index=0
         )
         if sync_operation_mode == "Aggregated Team Stats":
             target_team_id_input = st.number_input("Enter Target Team ID Key:", min_value=1, value=33, step=1)
@@ -194,22 +147,27 @@ if api_sync_triggered:
     else:
         with st.spinner("Connecting via Pure Python HTTPS Socket... Executing Selection Sweep..."):
             try:
+                current_time_marker = datetime.datetime.now()
                 conn = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=15)
                 api_headers = {'x-apisports-key': api_token_input}
                 
-                if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)":
+                if sync_operation_mode in ["Compile Bulk Historical CSV (Method 1)", "Aggregated Team Stats"]:
                     league_id = API_LEAGUE_ID_MAP[target_sync_country]
-                    target_year = selected_override_year if manual_override_active else datetime.datetime.now().year
-                    endpoint_query = f"/fixtures?league={league_id}&season={target_year}"
-                elif sync_operation_mode == "Aggregated Team Stats":
-                    league_id = API_LEAGUE_ID_MAP[target_sync_country]
-                    target_year = selected_override_year if manual_override_active else datetime.datetime.now().year
-                    endpoint_query = f"/teams/statistics?league={league_id}&season={target_year}&team={int(target_team_id_input)}"
+                    target_year = selected_override_year if manual_override_active else 2024
+                    
+                    if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)":
+                        if "Upcoming" in sync_target_scope:
+                            # FIXED: Re-calibrated to extract upcoming matches for the next 30 days securely
+                            today_str = current_time_marker.strftime("%Y-%m-%d")
+                            future_str = (current_time_marker + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+                            endpoint_query = f"/fixtures?league={league_id}&season={target_year}&from={today_str}&to={future_str}&status=NS"
+                        else:
+                            endpoint_query = f"/fixtures?league={league_id}&season={target_year}"
+                    else:
+                        endpoint_query = f"/teams/statistics?league={league_id}&season={target_year}&team={int(target_team_id_input)}"
                 elif sync_operation_mode == "Global Calendar Date":
                     endpoint_query = f"/fixtures?date={target_calendar_date.strftime('%Y-%m-%d')}&timezone={target_timezone_string.strip()}"
-                    if optional_league_scope:
-                        league_id = API_LEAGUE_ID_MAP[target_sync_country]
-                        endpoint_query += f"&league={league_id}"
+                    if optional_league_scope: endpoint_query += f"&league={API_LEAGUE_ID_MAP[target_sync_country]}"
                 elif sync_operation_mode == "Dedicated Team Profile Form":
                     param_type = "next" if "Next" in team_form_scope else "last"
                     endpoint_query = f"/fixtures?team={int(target_team_id_input)}&{param_type}={int(team_record_depth)}"
@@ -219,11 +177,10 @@ if api_sync_triggered:
                 conn.request("GET", endpoint_query, headers=api_headers)
                 api_response = conn.getresponse()
                 if api_response.status == 200: api_data_payload_string = api_response.read().decode("utf-8")
-                else: st.error(f"❌ Server Rejected Call! Status Code: {api_response.status}")
                 conn.close()
-            except Exception as init_api_err: st.error(f"❌ Connection Handshake Parameters Misconfigured: {init_api_err}")
+            except Exception as init_api_err: st.error(f"❌ Connection Handshake Error: {init_api_err}")
             # ==============================================================================
-# SEGMENT 4A OF 10: JSON UNPACKING & BATCH ARRAY FILTERING
+# SEGMENT 4A OF 12: JSON UNPACKING & BATCH ARRAY FILTERING
 # ==============================================================================
 
 if api_sync_triggered and api_data_payload_string:
@@ -255,27 +212,35 @@ if api_sync_triggered and api_data_payload_string:
                 stats_res = api_data["response"]
                 st.write(f"### 📊 Season Performance Metrics Card Summary")
                 st.json(stats_res)
-            else: st.warning("⚠️ No seasonal records matched these query parameter states.")
+            else: st.warning("⚠️ No seasonal records matched these query parameters.")
                 
         elif "response" in api_data and api_data["response"]:
             raw_fixtures_list = api_data["response"]
-            if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)":
+            if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)" and "Upcoming" not in sync_target_scope:
                 target_fixtures = [f for f in raw_fixtures_list if f.get("goals", {}).get("home") is not None]
                 target_fixtures = target_fixtures[:40]
             else: target_fixtures = raw_fixtures_list
             
         total_fixtures = len(target_fixtures)
         # ==============================================================================
-# SEGMENT 4B OF 10: TELEMETRY ACCUMULATOR & DISK DATABASE COMMITS
+# SEGMENT 4B OF 12: TELEMETRY ACCUMULATOR & REST DAYS LOOKBACK SHIELD
 # ==============================================================================
 
         if not is_profile_view and not is_aggregate_stats_view and total_fixtures == 0:
-            st.warning("⚠️ Zero completed records found inside this seasonal parameter frame.")
+            st.warning("⚠️ Zero records found inside this seasonal parameter frame.")
         elif not is_profile_view and not is_aggregate_stats_view:
             progress_bar = st.progress(0)
             status_text = st.empty()
             compiled_api_rows = []
             
+            storage_path = "master_sisonke_database.csv"
+            historical_reference_df = pd.DataFrame()
+            if os.path.exists(storage_path):
+                try:
+                    historical_reference_df = pd.read_csv(storage_path)
+                    historical_reference_df["match_timestamp"] = pd.to_datetime(historical_reference_df["match_timestamp"], errors='coerce')
+                except: pass
+
             for index, item in enumerate(target_fixtures):
                 f_meta = item.get("fixture", {})
                 fixture_id = f_meta.get("id")
@@ -287,7 +252,11 @@ if api_sync_triggered and api_data_payload_string:
                 a_name = teams.get("away", {}).get("name", "Unknown Away")
                 record_country = league_meta.get("country", "Global Stream")
                 
-                status_text.text(f"Scraping Statistics Endpoint {index+1}/{total_fixtures}: {h_name} vs {a_name}")
+                raw_date_str = f_meta.get("date", datetime.datetime.now().isoformat())
+                current_match_time = pd.to_datetime(raw_date_str, errors='coerce')
+                if pd.isnull(current_match_time): current_match_time = pd.Timestamp.now()
+                
+                status_text.text(f"Processing Match {index+1}/{total_fixtures}: {h_name} vs {a_name}")
                 h_stats_compiled, a_stats_compiled = {}, {}
                 
                 if fixture_id and goals.get("home") is not None:
@@ -311,10 +280,24 @@ if api_sync_triggered and api_data_payload_string:
                     if w is None or t is None: return 0.50
                     try: return round(float(str(w).replace("%", "").strip()) / max(1.0, float(str(t).replace("%", "").strip())), 2)
                     except: return 0.50
-                
+
+                calculated_home_rest_days, calculated_away_rest_days = 5.0, 5.0
+                if not historical_reference_df.empty:
+                    home_past = historical_reference_df[((historical_reference_df["home_team"] == h_name) | (historical_reference_df["away_team"] == h_name)) & (historical_reference_df["match_timestamp"] < current_match_time)]
+                    if not home_past.empty:
+                        days_diff = (current_match_time - home_past["match_timestamp"].max()).days
+                        calculated_home_rest_days = float(days_diff) if days_diff <= 14 else 5.0
+                        
+                    away_past = historical_reference_df[((historical_reference_df["home_team"] == a_name) | (historical_reference_df["away_team"] == a_name)) & (historical_reference_df["match_timestamp"] < current_match_time)]
+                    if not away_past.empty:
+                        days_diff = (current_match_time - away_past["match_timestamp"].max()).days
+                        calculated_away_rest_days = float(days_diff) if days_diff <= 14 else 5.0
+
                 row_dict = {
-                    "league_country": record_country, "match_timestamp": f_meta.get("date", datetime.datetime.now().isoformat()),
-                    "home_team": h_name, "away_team": a_name, "home_goals": goals.get("home"), "away_goals": goals.get("away"),
+                    "league_country": record_country, "match_timestamp": current_match_time.isoformat(),
+                    "home_team": h_name, "away_team": a_name, 
+                    "home_goals": goals.get("home") if goals.get("home") is not None else np.nan, 
+                    "away_goals": goals.get("away") if goals.get("away") is not None else np.nan,
                     "home_sot": float(h_stats_compiled.get("Shots on Goal", 4.0)), "away_sot": float(a_stats_compiled.get("Shots on Goal", 3.5)),
                     "home_big_chances": float(h_stats_compiled.get("Big Chances Created", 1.2)), "away_big_chances": float(a_stats_compiled.get("Big Chances Created", 0.9)),
                     "home_box_touches": float(h_stats_compiled.get("Touches in Opposition Box", 16)), "away_box_touches": float(a_stats_compiled.get("Touches in Opposition Box", 13)),
@@ -333,7 +316,7 @@ if api_sync_triggered and api_data_payload_string:
                     "away_tackles_won_pct": get_pct(a_stats_compiled.get("Tackles Won"), a_stats_compiled.get("Total Tackles")),
                     "home_passes_final_third_pct": get_pct(h_stats_compiled.get("Passes Accurate"), h_stats_compiled.get("Total Passes")),
                     "away_passes_final_third_pct": get_pct(a_stats_compiled.get("Passes Accurate"), a_stats_compiled.get("Total Passes")),
-                    "home_rest_days": 5, "away_rest_days": 5
+                    "home_rest_days": calculated_home_rest_days, "away_rest_days": calculated_away_rest_days
                 }
                 compiled_api_rows.append(row_dict)
                 progress_bar.progress((index + 1) / total_fixtures)
@@ -343,21 +326,18 @@ if api_sync_triggered and api_data_payload_string:
             
             if compiled_api_rows:
                 new_api_df = pd.DataFrame(compiled_api_rows)
-                storage_path = "master_sisonke_database.csv"
-                if os.path.exists(storage_path):
+                if not historical_reference_df.empty:
                     try:
-                        existing_disk_df = pd.read_csv(storage_path)
-                        combined_disk_df = pd.concat([existing_disk_df, new_api_df], ignore_index=True)
+                        combined_disk_df = pd.concat([historical_reference_df, new_api_df], ignore_index=True)
                         combined_disk_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
                         combined_disk_df.to_csv(storage_path, index=False)
-                        st.sidebar.success(f"💾 Combined: Added {len(new_api_df)} rows to local master CSV database.")
                     except: pass
                 else: new_api_df.to_csv(storage_path, index=False)
-                st.success("⚡ SUCCESS! Your custom historical data package has been successfully compiled.")
+                st.success("⚡ SUCCESS! Your custom data package has been successfully compiled.")
                 st.rerun()
-    except Exception as process_api_err: st.error(f"❌ Extraction Error: {process_api_err}")
+    except Exception as e: st.error(f"❌ Extraction Error: {e}")
     # ==============================================================================
-# SEGMENT 5 OF 10: CSV SCHEMA TRANSLATION ENGINE & AUTOMATED TIER-2 SHIELD
+# SEGMENT 5 OF 12: CSV SCHEMA TRANSLATION ENGINE & AUTOMATED TIER-2 SHIELD
 # ==============================================================================
 
 full_validation_df = pd.DataFrame()
@@ -369,7 +349,7 @@ if uploaded_file is not None:
         uploaded_file.seek(0)
         raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
         if raw_lines and len(raw_lines) > 0:
-            header_line = str(raw_lines)
+            header_line = str(raw_lines[0])
             headers = header_line.split(",")
             target_column_count = len(headers)
             cleaned_lines = [header_line]
@@ -413,11 +393,8 @@ if uploaded_file is not None:
                 "home_rest_days": 5.0, "away_rest_days": 5.0
             }
             
-            tier2_repaired_counter = 0
             for mandatory_col, fallback_val in DEFAULT_TIER2_FALLBACKS.items():
-                if mandatory_col not in manual_upload_df.columns:
-                    manual_upload_df[mandatory_col] = fallback_val
-                    tier2_repaired_counter += 1
+                if mandatory_col not in manual_upload_df.columns: manual_upload_df[mandatory_col] = fallback_val
                 else: manual_upload_df[mandatory_col] = manual_upload_df[mandatory_col].fillna(fallback_val)
             
             valid_structural_columns = ["league_country", "match_timestamp", "home_team", "away_team"] + list(DEFAULT_TIER2_FALLBACKS.keys())
@@ -427,28 +404,26 @@ if uploaded_file is not None:
             full_validation_df = pd.concat([full_validation_df, manual_upload_df], ignore_index=True)
             is_valid_data = True
             st.sidebar.success(f"Loaded {len(manual_upload_df)} matches successfully!")
-    except Exception as e: st.error(f"Manual Ingestion Shield Error: {e}")
+    except Exception as e: st.error(f"Schema Shield Error: {e}")
     # ==============================================================================
-# SEGMENT 6 OF 10: DATATYPE SYNCHRONIZATION ENGINE & STRATEGIC TUNING CONTROLS
+# SEGMENT 6 OF 12: DATATYPE SYNCHRONIZATION ENGINE & STRATEGIC TUNING CONTROLS
 # ==============================================================================
 
-if st.session_state["api_downloaded_data"] is not None:
-    st.session_state["api_downloaded_data"].columns = [str(c).strip().lower() for c in st.session_state["api_downloaded_data"].columns]
-    full_validation_df = pd.concat([full_validation_df, st.session_state["api_downloaded_data"]], ignore_index=True)
-    is_valid_data = True
-
-if os.path.exists(storage_path) and not is_valid_data:
-    try:
-        full_validation_df = pd.read_csv(storage_path)
-        if not full_validation_df.empty: is_valid_data = True
-    except: pass
-
 if is_valid_data and not full_validation_df.empty:
-    full_validation_df["match_timestamp"] = full_validation_df["match_timestamp"].astype(str).str.replace("T", " ").str.strip()
-    full_validation_df["match_timestamp"] = pd.to_datetime(full_validation_df["match_timestamp"], errors='coerce')
-    full_validation_df["match_timestamp"] = full_validation_df["match_timestamp"].fillna(pd.Timestamp.now())
-    full_validation_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
-    full_validation_df["league_country"] = full_validation_df["league_country"].astype(str).str.strip()
+    working_pipeline_df = full_validation_df.copy()
+else:
+    working_pipeline_df = pd.DataFrame()
+    if os.path.exists(storage_path):
+        try: working_pipeline_df = pd.read_csv(storage_path)
+        except: pass
+
+if not working_pipeline_df.empty:
+    working_pipeline_df["match_timestamp"] = working_pipeline_df["match_timestamp"].astype(str).str.replace("T", " ").str.strip()
+    working_pipeline_df["match_timestamp"] = pd.to_datetime(working_pipeline_df["match_timestamp"], errors='coerce')
+    working_pipeline_df["match_timestamp"] = working_pipeline_df["match_timestamp"].fillna(pd.Timestamp.now())
+    
+    working_pipeline_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
+    working_pipeline_df["league_country"] = working_pipeline_df["league_country"].astype(str).str.strip()
     
     numeric_target_columns = [
         "home_goals", "away_goals", "home_sot", "away_sot", "home_big_chances", "away_big_chances", 
@@ -460,18 +435,18 @@ if is_valid_data and not full_validation_df.empty:
         "home_passes_final_third_pct", "away_passes_final_third_pct", "home_rest_days", "away_rest_days"
     ]
     for col in numeric_target_columns:
-        if col in full_validation_df.columns:
-            full_validation_df[col] = pd.to_numeric(full_validation_df[col], errors='coerce')
-            full_validation_df[col] = full_validation_df[col].fillna(0.0 if "pct" not in col else 0.50).astype('float64')
+        if col in working_pipeline_df.columns:
+            working_pipeline_df[col] = pd.to_numeric(working_pipeline_df[col], errors='coerce')
+            working_pipeline_df[col] = working_pipeline_df[col].fillna(0.0 if "pct" not in col else 0.50).astype('float64')
 
-    settled_games = full_validation_df.dropna(subset=["home_goals", "away_goals"]).copy()
+    settled_games = working_pipeline_df.dropna(subset=["home_goals", "away_goals"]).copy()
     if len(settled_games) > 0:
         settled_games["actual_outcome"] = np.where(settled_games["home_goals"] > settled_games["away_goals"], "Home", np.where(settled_games["home_goals"] < settled_games["away_goals"], "Away", "Draw"))
         st.session_state["overall_model_accuracy"] = f"{(int(len(settled_games) * 0.58) / len(settled_games)) * 100:.1f}%"
     else: st.session_state["overall_model_accuracy"] = "58.0% (Base)"
-    uploaded_leagues = sorted(list(full_validation_df["league_country"].dropna().unique()))
+    uploaded_leagues = sorted(list(working_pipeline_df["league_country"].dropna().unique()))
 else:
-    st.info("📂 Data Control Room: Drop your master match CSV file into the uploader or execute an automation sweep.")
+    st.info("📂 Data Control Room Active: Please upload your recent CSV file containing fixtures to begin training.")
     st.stop()
 
 selected_league_filter = st.selectbox("Select Target League:", uploaded_leagues)
@@ -487,14 +462,21 @@ backtest_window = st.slider("Backtest Window Size (Days)", 90, 365, 180, 5)
 confidence_floor_input = st.slider("Strict Confidence Floor Trigger (%)", 15, 85, 50, 5)
 accuracy_threshold_floor = st.slider("Strict Accuracy Floor (%)", 35, 75, 50, 5) / 100.0
 
-filtered_df = full_validation_df[full_validation_df["league_country"].str.lower().str.strip() == selected_league_filter.lower().strip()].reset_index(drop=True)
+filtered_df = working_pipeline_df[working_pipeline_df["league_country"].str.lower().str.strip() == selected_league_filter.lower().strip()].reset_index(drop=True)
+
+st.markdown("### 📈 Exponential Time-Decay Weighting Behavior Visualization")
+days_axis = np.arange(0, 120, 1)
+decay_weights = (0.5) ** (days_axis / half_life_days)
+decay_chart_data = pd.DataFrame({"Days Elapsed Since Match": days_axis, "Model Predictive Weight (0.0 - 1.0)": decay_weights}).set_index("Days Elapsed Since Match")
+st.line_chart(decay_chart_data, use_container_width=True)
+
 tab_pred, tab_tables, tab_history, tab_past = st.tabs(["📅 PROJECTIONS", "🌍 STANDINGS", "📜 BACKTESTER", "📜 PAST GAMES"])
 # ==============================================================================
-# SEGMENT 7 OF 10: WORKSPACE PROJECTIONS PROCESSING & EXTENDED MANIFEST
+# SEGMENT 7A OF 12: PROJECTIONS PROCESSING & MOMENTUM TRACKER
 # ==============================================================================
 
 with tab_pred:
-    st.markdown(f"### Match Analytics & Odds Engine Workspace: {selected_league_filter.upper()}")
+    st.markdown(f"### Match Analytics & Venue Momentum Workspace: {selected_league_filter.upper()}")
     if not filtered_df.empty:
         options = {f"[{r['league_country'].upper()}] {r['home_team']} vs {r['away_team']} ({pd.to_datetime(r['match_timestamp']).strftime('%Y-%m-%d') if pd.notnull(r['match_timestamp']) else 'N/A'})": r for idx, r in filtered_df.iterrows()}
         if options:
@@ -503,6 +485,41 @@ with tab_pred:
                 target = options[sel_match]
                 target_ts = pd.to_datetime(target["match_timestamp"])
                 
+                # --- FIXED: HOME/AWAY VENUE PERFORMANCE RATIO PARSER ---
+                past_home_games = filtered_df[(filtered_df["home_team"] == target["home_team"]) & (filtered_df["match_timestamp"] < target_ts)].sort_values(by="match_timestamp", ascending=True).tail(5)
+                past_away_games = filtered_df[(filtered_df["away_team"] == target["away_team"]) & (filtered_df["match_timestamp"] < target_ts)].sort_values(by="match_timestamp", ascending=True).tail(5)
+                
+                home_streak_score, away_streak_score = 0, 0
+                home_cs_streak, away_cs_streak = 0, 0
+                
+                for _, gm in past_home_games.iterrows():
+                    if gm["home_goals"] > gm["away_goals"]: home_streak_score = home_streak_score + 1 if home_streak_score >= 0 else 1
+                    elif gm["home_goals"] < gm["away_goals"]: home_streak_score = home_streak_score - 1 if home_streak_score <= 0 else -1
+                    if gm["away_goals"] == 0: home_cs_streak += 1
+                    else: home_cs_streak = 0
+                        
+                for _, gm in past_away_games.iterrows():
+                    if gm["away_goals"] > gm["home_goals"]: away_streak_score = away_streak_score + 1 if away_streak_score >= 0 else 1
+                    elif gm["away_goals"] < gm["home_goals"]: away_streak_score = away_streak_score - 1 if away_streak_score <= 0 else -1
+                    if gm["home_goals"] == 0: away_cs_streak += 1
+                    else: away_cs_streak = 0
+
+                st.markdown("### 🚨 Venue Momentum Indicators")
+                s_col1, s_col2 = st.columns(2)
+                with s_col1:
+                    if home_streak_score >= 3: st.success(f"🔥 {target['home_team']} on Hot Home Streak: {home_streak_score} Wins")
+                    elif home_streak_score <= -3: st.error(f"🥶 {target['home_team']} in Home Slump: {abs(home_streak_score)} Losses")
+                    else: st.info(f"📊 {target['home_team']} Home Form State: Stable Baseline")
+                    if home_cs_streak >= 2: st.caption(f"🧱 Wall Active: {home_cs_streak} consecutive Home Clean Sheets")
+                with s_col2:
+                    if away_streak_score >= 3: st.success(f"🔥 {target['away_team']} on Hot Away Streak: {away_streak_score} Wins")
+                    elif away_streak_score <= -3: st.error(f"🥶 {target['away_team']} in Away Slump: {abs(away_streak_score)} Losses")
+                    else: st.info(f"📊 {target['away_team']} Away Form State: Stable Baseline")
+                    if away_cs_streak >= 2: st.caption(f"🧱 Wall Active: {away_cs_streak} consecutive Road Clean Sheets")
+                    # ==============================================================================
+# SEGMENT 7B OF 12: EXTENDED BOOKMAKER ODDS MATRIX INPUT LAYER
+# ==============================================================================
+
                 o_col1, o_col2, o_col3, o_col4 = st.columns(4)
                 with o_col1:
                     st.write("**Primary Outrights**")
@@ -532,7 +549,6 @@ with tab_pred:
                     odds_home_under_15 = st.number_input("Home Under 1.5 Odds:", min_value=1.01, value=1.65, step=0.05, key="o_t_h_u15")
                     odds_away_over_15 = st.number_input("Away Over 1.5 Odds:", min_value=1.01, value=3.10, step=0.05, key="o_t_a_o15")
                     odds_away_under_15 = st.number_input("Away Under 1.5 Odds:", min_value=1.01, value=1.35, step=0.05, key="o_t_a_u15")
-                    
                     odds_home_cs_y = st.number_input("Home Clean Sheet (Yes):", min_value=1.01, value=2.60, step=0.05, key="o_cs_h_y")
                     odds_away_cs_y = st.number_input("Away Clean Sheet (Yes):", min_value=1.01, value=3.90, step=0.05, key="o_cs_a_y")
 
@@ -542,8 +558,36 @@ with tab_pred:
                 league_key = selected_league_filter.lower().strip()
                 baseline_goals = engine.COMPETITION_MATRIX.get(league_key, {"baseline_goals": 2.65}).get("baseline_goals", 2.65)
                 is_fr = st.session_state.freeze_matrix.get(league_key, False)
+                # ==============================================================================
+# SEGMENT 7C OF 12: DYNAMIC MOTIVATION CALIBRATION MATRIX
+# ==============================================================================
+
+                home_motivation_multiplier, away_motivation_multiplier = 1.00, 1.00
+                live_standings_df = engine.generate_dynamic_league_table(filtered_df)
                 
-                res = engine.predict_match_probabilities(filtered_df, target["home_team"], target["away_team"], target_ts, baseline_goals, 5, 5, h_status, a_status, max_score_cap, vol_dampener, is_fr)
+                if live_standings_df is not None and not live_standings_df.empty:
+                    live_standings_df["Team"] = live_standings_df["Team"].astype(str).str.strip().lower()
+                    total_league_teams = len(live_standings_df)
+                    
+                    home_match_row = live_standings_df[live_standings_df["Team"] == str(target["home_team"]).strip().lower()]
+                    if not home_match_row.empty:
+                        home_position = int(home_match_row.index[0]) + 1
+                        games_played = int(home_match_row["P"].values[0]) if "P" in home_match_row.columns else 25
+                        if games_played > (total_league_teams * 2 * 0.70):
+                            if home_position <= 5: home_motivation_multiplier = 1.12
+                            elif home_position >= (total_league_teams - 2): home_motivation_multiplier = 1.15
+                            elif 8 <= home_position <= (total_league_teams - 5): home_motivation_multiplier = 0.92
+
+                    away_match_row = live_standings_df[live_standings_df["Team"] == str(target["away_team"]).strip().lower()]
+                    if not away_match_row.empty:
+                        away_position = int(away_match_row.index[0]) + 1
+                        games_played = int(away_match_row["P"].values[0]) if "P" in away_match_row.columns else 25
+                        if games_played > (total_league_teams * 2 * 0.70):
+                            if away_position <= 5: away_motivation_multiplier = 1.12
+                            elif away_position >= (total_league_teams - 2): away_motivation_multiplier = 1.15
+                            elif 8 <= away_position <= (total_league_teams - 5): away_motivation_multiplier = 0.92
+
+                res = engine.predict_match_probabilities(filtered_df, target["home_team"], target["away_team"], target_ts, baseline_goals, home_motivation_multiplier, away_motivation_multiplier, h_status, a_status, max_score_cap, vol_dampener, is_fr)
                 h_s = engine.parse_live_team_averages(filtered_df, target["home_team"], target_ts, half_life_days, h_status, is_fr)
                 a_s = engine.parse_live_team_averages(filtered_df, target["away_team"], target_ts, half_life_days, a_status, is_fr)
 
@@ -559,7 +603,6 @@ with tab_pred:
                         cell_p = prob_matrix[r_idx, a_idx]
                         if r_idx + a_idx > 2.5: over_25_p += cell_p
                         if r_idx > 0 and a_idx > 0: btts_yes_p += cell_p
-                        
                         if a_idx == 0: home_cs_p += cell_p
                         if r_idx == 0: away_cs_p += cell_p
                         
@@ -598,7 +641,7 @@ with tab_pred:
                 sd = min(h_s.get("games_played", 0), a_s.get("games_played", 0))
                 confidence = min(100, int((sd / 12.0) * 100)) if sd > 0 else 15
                 # ==============================================================================
-# SEGMENT 8 OF 10: MULTI-TIER VALUE ALLOCATOR & STAKING CALCULATION MATRIX
+# SEGMENT 8 OF 12: EXPECTED VALUE AUDITOR MATRIX & INTERACTIVE DIAGNOSTIC BANNER
 # ==============================================================================
 
                 st.markdown("### 📊 Comprehensive Market Projections & Value Audit")
@@ -611,21 +654,25 @@ with tab_pred:
                     implied_bookie_prob = 1.0 / b_odds if b_odds > 0 else 0.0
                     edge_delta = m_prob - implied_bookie_prob
                     raw_individual_kelly = ((m_prob * b_odds) - 1.0) / (b_odds - 1.0) if b_odds > 1.0 else 0.0
-                    calculated_stake_allocation_pct = max(0.2, min(2.5, round(raw_individual_kelly * 0.125 * 100, 2)))
                     
+                    # --- plan-compliant PROFESSIONAL TIERS & ANOMALY CEILING SHIELD MATRIX ---
                     if confidence < confidence_floor_input:
                         value_status_tag = f"❌ NO BET (LOW CONFIDENCE < {confidence_floor_input}%)"
                         calculated_stake_allocation_pct = 0.0
                     elif calculated_ev > MAX_EV_CEILING_CAP:
                         value_status_tag = "⚠️ EXTREME VOLATILITY (CEILING SKIPPED)"
                         calculated_stake_allocation_pct = 0.0
-                    elif calculated_ev >= 0.071 and m_prob >= 0.35:
-                        value_status_tag = "🔥 HIGH VALUE"
+                    elif calculated_ev >= 0.070 and m_prob >= (accuracy_threshold_floor):
+                        value_status_tag = "🔥 HIGH VALUE PREMIUM TICKET"
                         calculated_stake_allocation_pct = max(0.5, min(5.0, round(raw_individual_kelly * 0.25 * 100, 2)))
-                        qualified_projections.append((label, calculated_ev, m_prob, b_odds, calculated_stake_allocation_pct))
-                    elif calculated_ev > 0.0:
-                        value_status_tag = "📊 ACCEPTABLE VALUE (MONITOR)"
-                        qualified_projections.append((label, calculated_ev, m_prob, b_odds, calculated_stake_allocation_pct))
+                        qualified_projections.append((label, calculated_ev, m_prob, b_odds, calculated_stake_allocation_pct, value_status_tag))
+                    elif 0.030 <= calculated_ev <= 0.069 and m_prob >= (accuracy_threshold_floor):
+                        value_status_tag = "📊 STANDARD REGULAR POSITION"
+                        calculated_stake_allocation_pct = max(0.2, min(2.5, round(raw_individual_kelly * 0.125 * 100, 2)))
+                        qualified_projections.append((label, calculated_ev, m_prob, b_odds, calculated_stake_allocation_pct, value_status_tag))
+                    elif 0.000 <= calculated_ev < 0.030:
+                        value_status_tag = "❌ NO BET (EDGE VALUE DEFICIT)"
+                        calculated_stake_allocation_pct = 0.0
                     else:
                         value_status_tag = "❌ NO BET"
                         calculated_stake_allocation_pct = 0.0
@@ -636,7 +683,28 @@ with tab_pred:
                         "Expected Value (EV)": f"{calculated_ev * 100:+.1f}%", "Staking Allocation": f"{calculated_stake_allocation_pct:.2f}%" if calculated_stake_allocation_pct > 0 else "0.00%",
                         "Recommendation Action": value_status_tag
                     })
+                
+                st.markdown("### 🚨 Sisonke Engine Audit Room")
+                if confidence < confidence_floor_input:
+                    st.error(f"⛔ CRITICAL SHIELD: Wagers locked! Venue data depth ({confidence}%) falls below your execution floor of {confidence_floor_input}%.")
+                else:
+                    highest_ev_found = max([(m_p * b_o) - 1.0 for lbl, b_o, m_p in markets_master_manifest])
+                    highest_prob_found = max([m_p for lbl, b_o, m_p in markets_master_manifest])
+                    
+                    if highest_ev_found > MAX_EV_CEILING_CAP:
+                        st.warning(f"⚠️ ANOMALY REJECTED: Calculations flagged an impossible market advantage sitting at {highest_ev_found*100:+.1f}% EV. Capital routing killed.")
+                    elif highest_ev_found < 0.030:
+                        st.error(f"📉 ADVANTAGE DEFICIT: Strict EV Floor active. Every market fails the professional baseline of +3.0% EV.")
+                    elif highest_prob_found < (accuracy_threshold_floor):
+                        st.warning(f"⚖️ VOLATILITY FILTRATION: Win probability ({highest_prob_found*100:.1f}%) fails selection floor ({accuracy_threshold_floor*100:.1f}%).")
+                    else:
+                        if highest_ev_found >= 0.070: st.success(f"🔥 ELITE SELECTION AUTHORIZED: Premium entry at {highest_ev_found*100:+.1f}% EV. Download coupon active.")
+                        else: st.info(f"✅ REGULAR SELECTION AUTHORIZED: Sweet-spot edge at {highest_ev_found*100:+.1f}% EV. Download active.")
+
                 st.dataframe(pd.DataFrame(all_markets_rendered_rows), use_container_width=True, hide_index=True)
+                # ==============================================================================
+# SEGMENT 9 OF 12: EXACT MATCH GOALS RENDERS & SCORE CURVE VISUALIZERS
+# ==============================================================================
 
                 st.markdown("### 🎯 Exact Goals & Correct Score Matrix Projections")
                 exact_goals_distribution = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, "5+": 0.0}
@@ -654,39 +722,25 @@ with tab_pred:
 
                 if graph_data_dict:
                     st.write("**Visualized Correct Score Distribution Curve (% Chance)**")
-                    st.bar_chart(pd.DataFrame(list(graph_data_dict.items()), columns=["Scoreline", "Probability (%)"]).set_index("Scoreline"), use_container_width=True)
+                    st.bar_chart(pd.DataFrame(list(graph_data
                     # ==============================================================================
-# SEGMENT 9 OF 10: GOALS MANIFEST RENDER, MESSAGING RELAYS & TACTICAL INSIGHTS
+# SEGMENT 10 OF 12: AUTOMATIC MESSAGING RELAYS & DOWNLOADABLE TICKET GENERATORS
 # ==============================================================================
 
-                g_col1, g_col2 = st.columns(2)
-                with g_col1:
-                    st.write("**Exact Total Match Goals**")
-                    goals_df_rows = []
-                    for g_count, g_prob in exact_goals_distribution.items():
-                        goals_df_rows.append({"Total Goals Choice": f"Exactly {g_count} Goals" if isinstance(g_count, int) else "5 or More Goals", "Model Probability": f"{g_prob * 100:.1f}%", "Status": "🔥 HIGH PROBABILITY" if g_prob >= 0.28 and confidence >= confidence_floor_input else "📊 Standard Metric"})
-                    st.dataframe(pd.DataFrame(goals_df_rows), use_container_width=True, hide_index=True)
-
-                with g_col2:
-                    st.write("**Top Predicted Correct Scores (Chance ≥ 2%)**")
-                    if correct_scores_list:
-                        cs_df = pd.DataFrame(correct_scores_list).sort_values(by="Model Probability", ascending=False).reset_index(drop=True)
-                        cs_df["Model Probability"] = cs_df["Model Probability"].apply(lambda x: f"{x * 100:.1f}%")
-                        st.dataframe(cs_df, use_container_width=True, hide_index=True)
-                    else: st.info("No single scoreline variant has crossed the baseline evaluation limit.")
-                
                 if qualified_projections and confidence >= confidence_floor_input:
-                    qualified_projections.sort(key=lambda x: x, reverse=True)
-                    best_pick, best_ev, best_prob, best_odds, fractional_scale_stake = qualified_projections
+                    # Sort primarily by Expected Value edge magnitudes safely
+                    qualified_projections.sort(key=lambda x: x[1], reverse=True)
+                    best_pick, best_ev, best_prob, best_odds, fractional_scale_stake, assigned_tier_tag = qualified_projections[0]
                     optimal_bet = best_pick
-                    bet_rec = "🔥 HIGH BET (KELLY MAXIMUM)" if best_ev >= 0.071 else "📊 MONITOR POSITION"
+                    bet_rec = assigned_tier_tag
                 else: 
                     optimal_bet, best_ev, fractional_scale_stake = "NO COMPREHENSIVE SELECTION MET FLOORS", 0.0, 0.0
                     bet_rec = "❌ NO BET"
 
-                if "HIGH" in bet_rec or "MONITOR" in bet_rec:
+                # Intercept block blocks messaging transmission entirely if calculations clear the ceiling cap flag state
+                if "PREMIUM" in bet_rec or "REGULAR" in bet_rec:
                     try:
-                        email_body = f"MATCH PROFILE : {target['home_team']} vs {target['away_team']}\nRECOMMENDED POSITION : {optimal_bet}\nEXPECTED VALUE : +{best_ev*100:.1f}%\nSTAKE SELECTION : {fractional_scale_stake}%"
+                        email_body = f"MATCH PROFILE : {target['home_team']} vs {target['away_team']}\nRATING TIER         : {bet_rec}\nRECOMMENDED POSITION: {optimal_bet}\nEXPECTED VALUE : +{best_ev*100:.1f}%\nSTAKE SELECTION     : {fractional_scale_stake}%"
                         server = smtplib.SMTP('://gmail.com', 587)
                         server.starttls()
                         server.login("sisonke.predictions@gmail.com", ui_google_app_password.strip())
@@ -708,24 +762,52 @@ with tab_pred:
                     st.markdown("### 🧠 Model Tactical Rationale Breakdown")
                     insight_lines = []
                     h_att, a_att, h_box = h_s.get("att_strength_goals", 1.0), a_s.get("att_strength_goals", 1.0), h_s.get("box_threat", 12.0)
-                    if h_att > a_att * 1.25: insight_lines.append(f"• **Dominant Threat Area**: {target['home_team']}'s attacking index ({h_att:.2f}) outclasses the visitors due to superior Final Third entries and an average Box Threat metric of {h_box:.1f}.")
-                    elif a_att > h_att * 1.25: insight_lines.append(f"• **Dominant Threat Area**: {target['away_team']}'s offensive efficiency ({a_att:.2f}) proves superior.")
-                    else: insight_lines.append("• **Balanced Attacking Structure**: Both teams display closely matched offensive process metrics, indicating an even midfield matchup.")
+                    if h_att > a_att * 1.25: insight_lines.append(f"• **Dominant Threat Area**: {target['home_team']}'s split venue home attacking index ({h_att:.2f}) outclasses the visitors due to superior home ground advantage execution parameters.")
+                    elif a_att > h_att * 1.25: insight_lines.append(f"• **Dominant Threat Area**: {target['away_team']}'s tactical travelling road efficiency ({a_att:.2f}) proves superior to the host's structure.")
+                    else: insight_lines.append("• **Balanced Attacking Structure**: Both teams display closely matched venue-specific metric footprints, indicating an even midfield matchup.")
                     st.markdown(f'<div class="insight-box">{"<br><br>".join(insight_lines)}</div>', unsafe_allow_html=True)
+                
                 with c_col_r:
                     st.markdown("### 🎫 Calibrated Ticket Slip")
-                    st.text_area("Ticket Log Slip", value=f"MATCH: {target['home_team']} vs {target['away_team']}\nPOSITION: {optimal_bet}\nSTAKE: {fractional_scale_stake}%\nEXPECTED VALUE: +{best_ev*100:.2f}%", height=200)
-                    # ==============================================================================
-# SEGMENT 10 OF 10: AUXILIARY STANDINGS MATRIX & ROLLING RANGE BACKTESTER
+                    ticket_string_content = (
+                        f"# ========================================\n"
+                        f"#          SISONKE CALIBRATED TICKET SLIP \n"
+                        f"# ========================================\n"
+                        f"MATCH PROFILE   : {target['home_team']} vs {target['away_team']}\n"
+                        f"RATING TIER TAG : {bet_rec}\n"
+                        f"TARGET MARKET   : {optimal_bet}\n"
+                        f"EXPECTED VALUE  : +{best_ev*100:.2f}%\n"
+                        f"KELLY STAKE     : {fractional_scale_stake}%\n"
+                        f"CONFIDENCE RATE : {confidence}%\n"
+                        f"TIMESTAMP EXP   : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                        f"# ========================================"
+                    )
+                    st.text_area("Ticket Log Slip View", value=ticket_string_content, height=180)
+                    
+                    st.download_button(
+                        label="💾 Download Coupon File Ticket (.txt)",
+                        data=ticket_string_content,
+                        file_name=f"sisonke_ticket_{target['home_team']}_vs_{target['away_team']}.txt",
+                        mime="text/plain",
+                        use_container_width=True
+                    )
+    else:
+        st.info("No fixtures found.")
+        # ==============================================================================
+# SEGMENT 11 OF 12: DYNAMIC LEAGUE STANDINGS FILTER MODULE WITH GD TIE-BREAKER
 # ==============================================================================
 
 with tab_tables:
     st.markdown(f"### Dynamic Standings Matrix: {selected_league_filter.upper()}")
     if not filtered_df.empty:
+        # Core backend matrix table sorts positions with explicit Goal Difference (GD) priorities
         base_table = engine.generate_dynamic_league_table(filtered_df)
         if base_table is not None and not base_table.empty: st.dataframe(base_table, use_container_width=True)
         else: st.info("Dynamic league standings are empty or uncompiled.")
     else: st.info("No context available to compile standings arrays.")
+    # ==============================================================================
+# SEGMENT 12 OF 12: ROLLING WINDOW BACKTESTER & SETTLED HISTORICAL RESULTS
+# ==============================================================================
 
 with tab_history:
     st.markdown("### Backtest Calibration Analysis")
