@@ -759,7 +759,7 @@ with tab_pred:
 
                 st.dataframe(pd.DataFrame(all_markets_rendered_rows), use_container_width=True, hide_index=True)
                 # ==============================================================================
-# SEGMENT 9 OF 12: EXACT TOTAL MATCH GOALS RENDERS & SCORE CURVE VISUALIZERS
+# SEGMENT 9 OF 12: EXACT MATCH GOALS RENDERS & SCORE CURVE VISUALIZERS
 # ==============================================================================
 
                 st.markdown("### 🎯 Exact Goals & Correct Score Matrix Projections")
@@ -772,9 +772,36 @@ with tab_pred:
                         total_goals = r_idx + a_idx
                         score_label = f"{r_idx}-{a_idx}"
                         if cell_p >= 0.01: graph_data_dict[score_label] = float(cell_p * 100)
-                        if total_goals in exact_goals_distribution: exact_goals_distribution[total_goals] += cell_p
-                        else: exact_
-                        # ==============================================================================
+                        
+                        # FIXED: Restored the complete variable token reference name to prevent crashes permanently
+                        if total_goals in exact_goals_distribution: 
+                            exact_goals_distribution[total_goals] += cell_p
+                        else: 
+                            exact_goals_distribution["5+"] += cell_p
+                            
+                        if cell_p >= 0.02: 
+                            correct_scores_list.append({"Scoreline": score_label, "Type": "Home Win" if r_idx > a_idx else "Away Win" if a_idx > r_idx else "Draw Match", "Model Probability": cell_p})
+
+                if graph_data_dict:
+                    st.write("**Visualized Correct Score Distribution Curve (% Chance)**")
+                    st.bar_chart(pd.DataFrame(list(graph_data_dict.items()), columns=["Scoreline", "Probability (%)"]).set_index("Scoreline"), use_container_width=True)
+
+                g_col1, g_col2 = st.columns(2)
+                with g_col1:
+                    st.write("**Exact Total Match Goals**")
+                    goals_df_rows = []
+                    for g_count, g_prob in exact_goals_distribution.items():
+                        goals_df_rows.append({"Total Goals Choice": f"Exactly {g_count} Goals" if isinstance(g_count, int) else "5 or More Goals", "Model Probability": f"{g_prob * 100:.1f}%", "Status": "🔥 HIGH PROBABILITY" if g_prob >= 0.28 and confidence >= confidence_floor_input else "📊 Standard Metric"})
+                    st.dataframe(pd.DataFrame(goals_df_rows), use_container_width=True, hide_index=True)
+
+                with g_col2:
+                    st.write("**Top Predicted Correct Scores (Chance ≥ 2%)**")
+                    if correct_scores_list:
+                        cs_df = pd.DataFrame(correct_scores_list).sort_values(by="Model Probability", ascending=False).reset_index(drop=True)
+                        cs_df["Model Probability"] = cs_df["Model Probability"].apply(lambda x: f"{x * 100:.1f}%")
+                        st.dataframe(cs_df, use_container_width=True, hide_index=True)
+                    else: st.info("No single scoreline variant has crossed the baseline evaluation limit.")
+                    # ==============================================================================
 # SEGMENT 10 OF 12: AUTOMATIC MESSAGING RELAYS & DOWNLOADABLE TICKET GENERATORS
 # ==============================================================================
 
