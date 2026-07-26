@@ -722,7 +722,7 @@ with tab_pred:
 
                 if graph_data_dict:
                     st.write("**Visualized Correct Score Distribution Curve (% Chance)**")
-                    st.bar_chart(pd.DataFrame(list(graph_data)
+                    st.bar_chart(pd.DataFrame(list(graph_data)))
                     # ==============================================================================
 # SEGMENT 10 OF 12: AUTOMATIC MESSAGING RELAYS & DOWNLOADABLE TICKET GENERATORS
 # ==============================================================================
