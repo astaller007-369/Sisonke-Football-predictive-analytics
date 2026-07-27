@@ -350,119 +350,119 @@ if uploaded_file is not None:
 # SEGMENT 6 OF 15: TELEMETRY ACCUMULATOR & DYNAMIC REST DAYS LOOKBACK SHIELD
 # ==============================================================================
 
-        if not is_profile_view and not is_aggregate_stats_view and total_fixtures == 0:
-            st.warning("⚠️ Zero completed records found inside this seasonal parameter frame.")
-        elif not is_profile_view and not is_aggregate_stats_view:
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            compiled_api_rows = []
-            
-            historical_reference_df = pd.DataFrame()
-            if os.path.exists(storage_path):
-                try:
-                    historical_reference_df = pd.read_csv(storage_path)
-                    historical_reference_df["match_timestamp"] = pd.to_datetime(historical_reference_df["match_timestamp"], errors='coerce')
-                except: pass
+if not is_profile_view and not is_aggregate_stats_view and total_fixtures == 0:
+    st.warning("⚠️ Zero completed records found inside this seasonal parameter frame.")
+elif not is_profile_view and not is_aggregate_stats_view:
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    compiled_api_rows = []
+    
+    historical_reference_df = pd.DataFrame()
+    if os.path.exists(storage_path):
+        try:
+            historical_reference_df = pd.read_csv(storage_path)
+            historical_reference_df["match_timestamp"] = pd.to_datetime(historical_reference_df["match_timestamp"], errors='coerce')
+        except: pass
 
-            for index, item in enumerate(target_fixtures):
-                f_meta = item.get("fixture", {})
-                fixture_id = f_meta.get("id")
-                teams = item.get("teams", {})
-                goals = item.get("goals", {})
-                league_meta = item.get("league", {})
-                
-                h_name = teams.get("home", {}).get("name", "Unknown Home")
-                a_name = teams.get("away", {}).get("name", "Unknown Away")
-                record_country = league_meta.get("country", "Global Stream")
-                
-                raw_date_str = f_meta.get("date", datetime.datetime.now().isoformat())
-                current_match_time = pd.to_datetime(raw_date_str, errors='coerce')
-                if pd.isnull(current_match_time): current_match_time = pd.Timestamp.now()
-                
-                status_text.text(f"Scraping Statistics Endpoint {index+1}/{total_fixtures}: {h_name} vs {a_name}")
-                h_stats_compiled, a_stats_compiled = {}, {}
-                
-                if fixture_id and goals.get("home") is not None:
-                    try:
-                        conn_stats = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=10)
-                        conn_stats.request("GET", f"/fixtures/statistics?fixture={fixture_id}", headers={'x-apisports-key': api_token_input})
-                        stats_res = conn_stats.getresponse()
-                        if stats_res.status == 200:
-                            stats_payload = json.loads(stats_res.read().decode("utf-8"))
-                            if "response" in stats_payload and stats_payload["response"]:
-                                for s_team_data in stats_payload["response"]:
-                                    t_name = s_team_data.get("team", {}).get("name")
-                                    raw_stats_list = s_team_data.get("statistics", [])
-                                    mapped_metrics = {stat["type"]: stat["value"] for stat in raw_stats_list if stat.get("type")}
-                                    if t_name == h_name: h_stats_compiled = mapped_metrics
-                                    elif t_name == a_name: a_stats_compiled = mapped_metrics
-                        conn_stats.close()
-                    except: pass
+    for index, item in enumerate(target_fixtures):
+        f_meta = item.get("fixture", {})
+        fixture_id = f_meta.get("id")
+        teams = item.get("teams", {})
+        goals = item.get("goals", {})
+        league_meta = item.get("league", {})
+        
+        h_name = teams.get("home", {}).get("name", "Unknown Home")
+        a_name = teams.get("away", {}).get("name", "Unknown Away")
+        record_country = league_meta.get("country", "Global Stream")
+        
+        raw_date_str = f_meta.get("date", datetime.datetime.now().isoformat())
+        current_match_time = pd.to_datetime(raw_date_str, errors='coerce')
+        if pd.isnull(current_match_time): current_match_time = pd.Timestamp.now()
+        
+        status_text.text(f"Scraping Statistics Endpoint {index+1}/{total_fixtures}: {h_name} vs {a_name}")
+        h_stats_compiled, a_stats_compiled = {}, {}
+        
+        if fixture_id and goals.get("home") is not None:
+            try:
+                conn_stats = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=10)
+                conn_stats.request("GET", f"/fixtures/statistics?fixture={fixture_id}", headers={'x-apisports-key': api_token_input})
+                stats_res = conn_stats.getresponse()
+                if stats_res.status == 200:
+                    stats_payload = json.loads(stats_res.read().decode("utf-8"))
+                    if "response" in stats_payload and stats_payload["response"]:
+                        for s_team_data in stats_payload["response"]:
+                            t_name = s_team_data.get("team", {}).get("name")
+                            raw_stats_list = s_team_data.get("statistics", [])
+                            mapped_metrics = {stat["type"]: stat["value"] for stat in raw_stats_list if stat.get("type")}
+                            if t_name == h_name: h_stats_compiled = mapped_metrics
+                            elif t_name == a_name: a_stats_compiled = mapped_metrics
+                conn_stats.close()
+            except: pass
 
-                def get_pct(w, t):
-                    if w is None or t is None: return 0.50
-                    try: return round(float(str(w).replace("%", "").strip()) / max(1.0, float(str(t).replace("%", "").strip())), 2)
-                    except: return 0.50
+        def get_pct(w, t):
+            if w is None or t is None: return 0.50
+            try: return round(float(str(w).replace("%", "").strip()) / max(1.0, float(str(t).replace("%", "").strip())), 2)
+            except: return 0.50
 
-                # --- ADVANCED TEMPORAL ENGINE: RETROSPECTIVE LOOKBACK SHIELD ---
-                calculated_home_rest_days = 5.0
-                calculated_away_rest_days = 5.0
+        # --- ADVANCED TEMPORAL ENGINE: RETROSPECTIVE LOOKBACK SHIELD ---
+        calculated_home_rest_days = 5.0
+        calculated_away_rest_days = 5.0
+        
+        if not historical_reference_df.empty:
+            home_past_records = historical_reference_df[((historical_reference_df["home_team"] == h_name) | (historical_reference_df["away_team"] == h_name)) & (historical_reference_df["match_timestamp"] < current_match_time)]
+            if not home_past_records.empty:
+                most_recent_home_match_time = home_past_records["match_timestamp"].max()
+                days_difference = (current_match_time - most_recent_home_match_time).days
+                calculated_home_rest_days = float(days_difference) if days_difference <= 14 else 5.0
                 
-                if not historical_reference_df.empty:
-                    home_past_records = historical_reference_df[((historical_reference_df["home_team"] == h_name) | (historical_reference_df["away_team"] == h_name)) & (historical_reference_df["match_timestamp"] < current_match_time)]
-                    if not home_past_records.empty:
-                        most_recent_home_match_time = home_past_records["match_timestamp"].max()
-                        days_difference = (current_match_time - most_recent_home_match_time).days
-                        calculated_home_rest_days = float(days_difference) if days_difference <= 14 else 5.0
-                        
-                    away_past_records = historical_reference_df[((historical_reference_df["home_team"] == a_name) | (historical_reference_df["away_team"] == a_name)) & (historical_reference_df["match_timestamp"] < current_match_time)]
-                    if not away_past_records.empty:
-                        most_recent_away_match_time = away_past_records["match_timestamp"].max()
-                        days_difference = (current_match_time - most_recent_away_match_time).days
-                        calculated_away_rest_days = float(days_difference) if days_difference <= 14 else 5.0
+            away_past_records = historical_reference_df[((historical_reference_df["home_team"] == a_name) | (historical_reference_df["away_team"] == a_name)) & (historical_reference_df["match_timestamp"] < current_match_time)]
+            if not away_past_records.empty:
+                most_recent_away_match_time = away_past_records["match_timestamp"].max()
+                days_difference = (current_match_time - most_recent_away_match_time).days
+                calculated_away_rest_days = float(days_difference) if days_difference <= 14 else 5.0
 
-                row_dict = {
-                    "league_country": record_country, "match_timestamp": current_match_time.isoformat(),
-                    "home_team": h_name, "away_team": a_name, "home_goals": goals.get("home"), "away_goals": goals.get("away"),
-                    "home_sot": float(h_stats_compiled.get("Shots on Goal", 4.0)), "away_sot": float(a_stats_compiled.get("Shots on Goal", 3.5)),
-                    "home_big_chances": float(h_stats_compiled.get("Big Chances Created", 1.2)), "away_big_chances": float(a_stats_compiled.get("Big Chances Created", 0.9)),
-                    "home_box_touches": float(h_stats_compiled.get("Touches in Opposition Box", 16)), "away_box_touches": float(a_stats_compiled.get("Touches in Opposition Box", 13)),
-                    "home_through_passes": float(h_stats_compiled.get("Through Passes", 1.5)), "away_through_passes": float(a_stats_compiled.get("Through Passes", 1.1)),
-                    "home_final_third_entries": float(h_stats_compiled.get("Final Third Entries", 32)), "away_final_third_entries": float(a_stats_compiled.get("Final Third Entries", 28)),
-                    "home_interceptions": float(h_stats_compiled.get("Interceptions", 11)), "away_interceptions": float(a_stats_compiled.get("Interceptions", 12)),
-                    "home_recoveries": float(h_stats_compiled.get("Ball Recoveries", 48)), "away_recoveries": float(a_stats_compiled.get("Ball Recoveries", 46)),
-                    "home_saves": float(h_stats_compiled.get("Goalkeeper Saves", 2.5)), "away_saves": float(a_stats_compiled.get("Goalkeeper Saves", 2.8)),
-                    "home_ground_duels_won_pct": get_pct(h_stats_compiled.get("Ground Duels Won"), h_stats_compiled.get("Ground Duels Total")),
-                    "away_ground_duels_won_pct": get_pct(a_stats_compiled.get("Ground Duels Won"), a_stats_compiled.get("Ground Duels Total")),
-                    "home_aerial_duels_won_pct": get_pct(h_stats_compiled.get("Aerial Duels Won"), h_stats_compiled.get("Aerial Duels Total")),
-                    "away_aerial_duels_won_pct": get_pct(a_stats_compiled.get("Aerial Duels Won"), a_stats_compiled.get("Aerial Duels Total")),
-                    "home_dribbles_won_pct": get_pct(h_stats_compiled.get("Successful Dribbles"), h_stats_compiled.get("Total Dribbles")),
-                    "away_dribbles_won_pct": get_pct(h_stats_compiled.get("Successful Dribbles"), h_stats_compiled.get("Total Dribbles")),
-                    "home_tackles_won_pct": get_pct(h_stats_compiled.get("Tackles Won"), h_stats_compiled.get("Total Tackles")),
-                    "away_tackles_won_pct": get_pct(a_stats_compiled.get("Tackles Won"), a_stats_compiled.get("Total Tackles")),
-                    "home_passes_final_third_pct": get_pct(h_stats_compiled.get("Passes Accurate"), h_stats_compiled.get("Total Passes")),
-                    "away_passes_final_third_pct": get_pct(a_stats_compiled.get("Passes Accurate"), a_stats_compiled.get("Total Passes")),
-                    "home_rest_days": calculated_home_rest_days, "away_rest_days": calculated_away_rest_days
-                }
-                compiled_api_rows.append(row_dict)
-                progress_bar.progress((index + 1) / total_fixtures)
-                
-            status_text.empty()
-            progress_bar.empty()
-            
-            if compiled_api_rows:
-                new_api_df = pd.DataFrame(compiled_api_rows)
-                if not historical_reference_df.empty:
-                    try:
-                        combined_disk_df = pd.concat([historical_reference_df, new_api_df], ignore_index=True)
-                        combined_disk_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
-                        combined_disk_df.to_csv(storage_path, index=False)
-                        st.sidebar.success(f"💾 Combined: Added {len(new_api_df)} rows to local master CSV database.")
-                    except: pass
-                else: new_api_df.to_csv(storage_path, index=False)
-                st.success("⚡ SUCCESS! Your custom historical data package has been successfully compiled.")
-                st.rerun()
-                # ==============================================================================
+        row_dict = {
+            "league_country": record_country, "match_timestamp": current_match_time.isoformat(),
+            "home_team": h_name, "away_team": a_name, "home_goals": goals.get("home"), "away_goals": goals.get("away"),
+            "home_sot": float(h_stats_compiled.get("Shots on Goal", 4.0)), "away_sot": float(a_stats_compiled.get("Shots on Goal", 3.5)),
+            "home_big_chances": float(h_stats_compiled.get("Big Chances Created", 1.2)), "away_big_chances": float(a_stats_compiled.get("Big Chances Created", 0.9)),
+            "home_box_touches": float(h_stats_compiled.get("Touches in Opposition Box", 16)), "away_box_touches": float(a_stats_compiled.get("Touches in Opposition Box", 13)),
+            "home_through_passes": float(h_stats_compiled.get("Through Passes", 1.5)), "away_through_passes": float(a_stats_compiled.get("Through Passes", 1.1)),
+            "home_final_third_entries": float(h_stats_compiled.get("Final Third Entries", 32)), "away_final_third_entries": float(a_stats_compiled.get("Final Third Entries", 28)),
+            "home_interceptions": float(h_stats_compiled.get("Interceptions", 11)), "away_interceptions": float(a_stats_compiled.get("Interceptions", 12)),
+            "home_recoveries": float(h_stats_compiled.get("Ball Recoveries", 48)), "away_recoveries": float(a_stats_compiled.get("Ball Recoveries", 46)),
+            "home_saves": float(h_stats_compiled.get("Goalkeeper Saves", 2.5)), "away_saves": float(a_stats_compiled.get("Goalkeeper Saves", 2.8)),
+            "home_ground_duels_won_pct": get_pct(h_stats_compiled.get("Ground Duels Won"), h_stats_compiled.get("Ground Duels Total")),
+            "away_ground_duels_won_pct": get_pct(a_stats_compiled.get("Ground Duels Won"), a_stats_compiled.get("Ground Duels Total")),
+            "home_aerial_duels_won_pct": get_pct(h_stats_compiled.get("Aerial Duels Won"), h_stats_compiled.get("Aerial Duels Total")),
+            "away_aerial_duels_won_pct": get_pct(a_stats_compiled.get("Aerial Duels Won"), a_stats_compiled.get("Aerial Duels Total")),
+            "home_dribbles_won_pct": get_pct(h_stats_compiled.get("Successful Dribbles"), h_stats_compiled.get("Total Dribbles")),
+            "away_dribbles_won_pct": get_pct(h_stats_compiled.get("Successful Dribbles"), h_stats_compiled.get("Total Dribbles")),
+            "home_tackles_won_pct": get_pct(h_stats_compiled.get("Tackles Won"), h_stats_compiled.get("Total Tackles")),
+            "away_tackles_won_pct": get_pct(a_stats_compiled.get("Tackles Won"), a_stats_compiled.get("Total Tackles")),
+            "home_passes_final_third_pct": get_pct(h_stats_compiled.get("Passes Accurate"), h_stats_compiled.get("Total Passes")),
+            "away_passes_final_third_pct": get_pct(a_stats_compiled.get("Passes Accurate"), a_stats_compiled.get("Total Passes")),
+            "home_rest_days": calculated_home_rest_days, "away_rest_days": calculated_away_rest_days
+        }
+        compiled_api_rows.append(row_dict)
+        progress_bar.progress((index + 1) / total_fixtures)
+        
+    status_text.empty()
+    progress_bar.empty()
+    
+    if compiled_api_rows:
+        new_api_df = pd.DataFrame(compiled_api_rows)
+        if not historical_reference_df.empty:
+            try:
+                combined_disk_df = pd.concat([historical_reference_df, new_api_df], ignore_index=True)
+                combined_disk_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
+                combined_disk_df.to_csv(storage_path, index=False)
+                st.sidebar.success(f"💾 Combined: Added {len(new_api_df)} rows to local master CSV database.")
+            except: pass
+        else: new_api_df.to_csv(storage_path, index=False)
+        st.success("⚡ SUCCESS! Your custom historical data package has been successfully compiled.")
+        st.rerun()
+        # ==============================================================================
 # SEGMENT 7 OF 15: DECOUPLED MEMORY INGESTION LAYER & TUNING CONTROLS
 # ==============================================================================
 
