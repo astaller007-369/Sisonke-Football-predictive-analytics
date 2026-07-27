@@ -1036,7 +1036,15 @@ with tab_pred:
 
                     with st.form("ledger_commit_form"):
                         st.write("**Commit Current Projections to Storage Ledger**")
-                        closing_odds_input = st.number_input("Enter Bookmaker Final Closing Odds:", min_value=1.01, value=float(best_odds), step=0.05)
+                        
+                        # --- FIXED: SAFE FLOAT CONVERSION GUARD ---
+                        # Intercepts text string fallbacks on no-bet fixtures to block ValueError crashes
+                        try:
+                            safe_default_odds = float(best_odds)
+                        except (ValueError, TypeError):
+                            safe_default_odds = 2.00  # Safe professional default baseline placeholder
+                            
+                        closing_odds_input = st.number_input("Enter Bookmaker Final Closing Odds:", min_value=1.01, value=safe_default_odds, step=0.05)
                         match_outcome_selection = st.selectbox("Select Actual Match Reality Outcome:", ["Pending / Unplayed", "Won Match", "Lost Match", "Void / Refunded"])
                         
                         submit_ledger_entry = st.form_submit_button("💾 Save Ticket to Hard Drive Ledger")
@@ -1044,13 +1052,18 @@ with tab_pred:
                             try:
                                 existing_ledger_df = pd.read_csv(ledger_path)
                                 
-                                entry_implied_prob = 1.0 / float(best_odds) if float(best_odds) > 0 else 0.0
+                                # Enforce robust type-casting parameters to secure background math stability
+                                current_entry_odds = float(best_odds)
+                                entry_implied_prob = 1.0 / current_entry_odds if current_entry_odds > 0 else 0.0
                                 closing_implied_prob = 1.0 / float(closing_odds_input) if float(closing_odds_input) > 0 else 0.0
                                 clv_edge_margin_pct = round((entry_implied_prob - closing_implied_prob) * 100, 2)
                                 
-                                if match_outcome_selection == "Won Match": net_units = round(float(fractional_scale_stake) * (float(best_odds) - 1.0), 2)
-                                elif match_outcome_selection == "Lost Match": net_units = -round(float(fractional_scale_stake), 2)
-                                else: net_units = 0.00
+                                if match_outcome_selection == "Won Match": 
+                                    net_units = round(float(fractional_scale_stake) * (current_entry_odds - 1.0), 2)
+                                elif match_outcome_selection == "Lost Match": 
+                                    net_units = -round(float(fractional_scale_stake), 2)
+                                else: 
+                                    net_units = 0.00
                                     
                                 new_ledger_row = {
                                     "Log_ID": str(int(datetime.datetime.now().timestamp())),
@@ -1058,7 +1071,7 @@ with tab_pred:
                                     "Match": f"{target['home_team']} vs {target['away_team']}",
                                     "Market": optimal_bet,
                                     "Model_Prob": f"{float(best_prob)*100:.1f}%",
-                                    "Entry_Odds": round(float(best_odds), 2),
+                                    "Entry_Odds": round(current_entry_odds, 2),
                                     "Closing_Odds": round(float(closing_odds_input), 2),
                                     "CLV_Edge_Pct": f"{clv_edge_margin_pct:+.2f}%",
                                     "Kelly_Stake_Pct": f"{float(fractional_scale_stake):.2f}%",
@@ -1070,7 +1083,8 @@ with tab_pred:
                                 updated_ledger_df.to_csv(ledger_path, index=False)
                                 st.toast("💾 Performance sheet records successfully cataloged to local bankroll database!")
                                 st.rerun()
-                            except Exception as ledger_err: st.error(f"Ledger Matrix Connection Interrupted: {ledger_err}")
+                            except Exception as ledger_err: 
+                                st.error(f"Ledger Matrix Connection Interrupted: {ledger_err}")
 
                     try:
                         display_ledger_df = pd.read_csv(ledger_path)
@@ -1081,8 +1095,9 @@ with tab_pred:
                             display_ledger_df["Cumulative_Units"] = display_ledger_df["Net_Profit_Units"].cumsum()
                             st.write("**Visualized Compounding Return Yield Curve (Rolling Units Profit)**")
                             st.line_chart(display_ledger_df.set_index("Timestamp")["Cumulative_Units"], use_container_width=True)
-                    except: pass
-                    # ==============================================================================
+                    except: 
+                        pass
+                        # ==============================================================================
 # SEGMENT 14 OF 14: DYNAMIC STANDINGS MODULE & ROLLING WINDOW BACKTESTER ENGINES
 # ==============================================================================
 
