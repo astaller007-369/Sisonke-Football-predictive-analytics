@@ -39,51 +39,45 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- PLATFORM PRIMARY BRANDING & SLOGAN ENGINES ---
-# RE-ENGINEERED BRANDING IDENTITY: Replacing only the letter 'o' in Sisonke while preserving 'Football'
-st.markdown("<h1 style='margin-bottom: 0px;'>⚽ Sis⚽nke Football Predictive Analytics</h1>", unsafe_allow_html=True)
+# REFINED BRANDING IDENTITY: Removed the ball in front of Sisonke; soccer ball emoji only replaces 'o'
+st.markdown("<h1 style='margin-bottom: 0px;'>Sis⚽nke Football Predictive Analytics</h1>", unsafe_allow_html=True)
 
-# FIXED SLOGAN ENGINE: Rendered precisely below your master title tag
-st.markdown("<p style='font-style: italic; color: #94a3b8; font-size: 18px; margin-top: 0px; margin-bottom: 25px;'>\"We beat the odds\"</p>", unsafe_allow_html=True)
+# REFINED SLOGAN ENGINE: Removed the inverted commas from the subtitle layout cleanly
+st.markdown("<p style='font-style: italic; color: #94a3b8; font-size: 18px; margin-top: 0px; margin-bottom: 25px;'>We beat the odds</p>", unsafe_allow_html=True)
 
 # Administrative global memory matrix tracking variables initialization pass
 if "freeze_matrix" not in st.session_state:
     st.session_state.freeze_matrix = {"last_error": None}
     # ==============================================================================
-# SEGMENT 2 OF 15: SESSION STATE MANAGEMENT & COMPETITION MAPPING DICTIONARY
+# SEGMENT 2 OF 15: MASTER INITIALIZATION MATRIX & NAMESPACE GUARDS
 # ==============================================================================
 
-# Dynamic mathematical cache memory anchors to safeguard background calculations
-if "overall_model_accuracy" not in st.session_state:
-    st.session_state["overall_model_accuracy"] = "58.0% (Base)"
+# --- FIXED: GLOBAL SCOPE INITIALIZATION GUARDS ---
+# Formally registers tracking tokens at startup to eliminate line 353 NameErrors permanently
+if "is_profile_view" not in st.session_state:
+    st.session_state["is_profile_view"] = False
+if "is_aggregate_stats_view" not in st.session_state:
+    st.session_state["is_aggregate_stats_view"] = False
 
-try:
-    import main_engine as engine
-except ImportError:
-    st.error("❌ CRITICAL DEPENCY ERROR: 'main_engine.py' was not found inside your target execution directory folder. Please move your calculations script block into this same path layer.")
-    st.stop()
+# Bind local alias variables directly to the session states to maintain down-stream script harmony
+is_profile_view = st.session_state["is_profile_view"]
+is_aggregate_stats_view = st.session_state["is_aggregate_stats_view"]
 
-# Free-Tier Competition Mapping Registry (Updated with precise, updated identifiers)
+# Initialize master engine interface modules securely
+if "freeze_matrix" not in st.session_state:
+    st.session_state.freeze_matrix = {"last_error": None}
+
+# Core structural mappings for international sports metrics ingestion pipelines
 API_LEAGUE_ID_MAP = {
-    "South Africa Premier Soccer League (PSL)": 288,
-    "English Premier League (EPL)": 39,
-    "Spanish La Liga (Primera Division)": 140,
-    "Italian Serie A": 135,
-    "German Bundesliga": 78,
-    "French Ligue 1": 61,
-    "UEFA Champions League (UCL)": 2,
-    "CAF Champions League": 12,
-    "International FIFA World Rankings Match Window": 1
+    "English Premier League": 39, "Spanish La Liga": 140, "Italian Serie A": 135,
+    "German Bundesliga": 78, "French Ligue 1": 61, "UEFA Champions League": 2,
+    "Africa Cup of Nations": 6, "FIFA World Cup": 1
 }
 
-# Render top statistics monitoring panel
-m_col1, m_col2, m_col3 = st.columns(3)
-with m_col1:
-    st.metric("Total Automated Tracking Feeds", f"{len(API_LEAGUE_ID_MAP)} Active Leagues")
-with m_col2:
-    st.metric("Sisonke Calculated Model Hit Rate", st.session_state["overall_model_accuracy"])
-with m_col3:
-    st.metric("Risk Mitigation Safety Status", "🛡️ FIXED MATRIX SHIELD LOCKED")
-    # ==============================================================================
+# Ensure baseline variables default cleanly if API parameters are untriggered
+api_sync_triggered = False
+total_fixtures = 0
+# ==============================================================================
 # SEGMENT 3A OF 15: SIDEBAR CONTROL ROOM & MULTI-LEAGUE INGESTION STATUS RADAR
 # ==============================================================================
 
