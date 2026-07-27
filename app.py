@@ -259,12 +259,11 @@ if api_sync_triggered and resolved_payload_string:
 # SEGMENT 4B OF 15: CLEAN JSON LOOP COMPILER & INGESTION HANDSHAKE GUARD
 # ==============================================================================
 
-                # Direct chronological sort tracking loop pass across raw responses
- if target_fixtures:
-                    target_fixtures.sort(key=lambda x: str(x.get("fixture", {}).get("date", "")), reverse=False)
-                    
+        # Chronologically sort fixtures based on scheduled date strings
+        if target_fixtures:
+            target_fixtures.sort(key=lambda x: str(x.get("fixture", {}).get("date", "")), reverse=False)
+
     except Exception as api_parse_structural_error:
-        # Close out the open Segment 4A try block smoothly
         st.session_state.freeze_matrix["last_error"] = f"API Payload Parsing Exception: {str(api_parse_structural_error)}"
 
 # --- SECURE FILE INGESTION BOUNDARY MATRIX ---
