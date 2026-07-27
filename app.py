@@ -961,68 +961,68 @@ with g_col2:
 # SEGMENT 13 OF 15: MESSAGING RELAYS & CALIBRATED COUPLING INTERFACE (PART 1)
 # ==============================================================================
 
-                if qualified_projections and confidence >= confidence_floor_input:
-                    qualified_projections.sort(key=lambda x: x[1], reverse=True)
-                    
-                    # --- FIXED: STRUCTURAL INDEX MAPPING GUARD ---
-                    # Isolate elements by exact array positions to prevent structural unpacking crashes permanently
-                    target_premium_selection = qualified_projections[0]
-                    optimal_bet = str(target_premium_selection[0])
-                    best_ev = float(target_premium_selection[1])
-                    best_prob = float(target_premium_selection[2])
-                    best_odds = float(target_premium_selection[3])
-                    fractional_scale_stake = float(target_premium_selection[4])
-                    bet_rec = str(target_premium_selection[5])
-                else: 
-                    optimal_bet = "NO COMPREHENSIVE SELECTION MET FLOORS"
-                    best_ev = 0.00
-                    best_prob = 0.00
-                    best_odds = 2.00  
-                    fractional_scale_stake = 0.00
-                    bet_rec = "❌ NO BET"
+if qualified_projections and confidence >= confidence_floor_input:
+    qualified_projections.sort(key=lambda x: x, reverse=True)
+    
+    # --- FIXED: STRUCTURAL INDEX MAPPING GUARD ---
+    # Isolate elements by exact array positions to prevent structural unpacking crashes permanently
+    target_premium_selection = qualified_projections[0]
+    optimal_bet = str(target_premium_selection[0])
+    best_ev = float(target_premium_selection[1])
+    best_prob = float(target_premium_selection[2])
+    best_odds = float(target_premium_selection[3])
+    fractional_scale_stake = float(target_premium_selection[4])
+    bet_rec = str(target_premium_selection[5])
+else: 
+    optimal_bet = "NO COMPREHENSIVE SELECTION MET FLOORS"
+    best_ev = 0.00
+    best_prob = 0.00
+    best_odds = 2.00  
+    fractional_scale_stake = 0.00
+    bet_rec = "❌ NO BET"
 
-                if "PREMIUM" in bet_rec or "REGULAR" in bet_rec:
-                    try:
-                        email_body = f"MATCH PROFILE : {target['home_team']} vs {target['away_team']}\nRATING TIER         : {bet_rec}\nRECOMMENDED POSITION: {optimal_bet}\nEXPECTED VALUE : +{best_ev*100:.1f}%\nSTAKE SELECTION     : {fractional_scale_stake}%"
-                        server = smtplib.SMTP('://gmail.com', 587)
-                        server.starttls()
-                        server.login("sisonke.predictions@gmail.com", ui_google_app_password.strip())
-                        for recipient in [ui_email_recipient.strip(), ui_sms_recipient.strip()]:
-                            msg = MIMEText(email_body)
-                            msg['Subject'] = f"🚨 SISONKE ALERT: {bet_rec}"
-                            msg['From'] = "sisonke.predictions@gmail.com"
-                            msg['To'] = recipient
-                            server.sendmail(msg['From'], [recipient], msg.as_string())
-                        server.quit()
-                        st.toast("📬 Coupon successfully broadcasted via SMS and Email!")
-                    except Exception as mail_err: st.session_state.freeze_matrix["last_error"] = str(mail_err)
-                
-                c_col_l, c_col_r = st.columns(2)
-                with c_col_l:
-                    st.markdown("### 📊 Live Analytics Monitor")
-                    st.metric("Match Confidence Value", f"{confidence}%")
-                    st.metric("Value Threshold Rating", bet_rec)
-                    st.markdown("### 🧠 Model Tactical Rationale Breakdown")
-                    
-                    def parse_metric_safely(stats_dict, exact_key, default_fallback):
-                        for k, v in stats_dict.items():
-                            if str(k).strip().lower().replace("_", " ") == str(exact_key).lower().replace("_", " "): return float(v)
-                        return default_fallback
+if "PREMIUM" in bet_rec or "REGULAR" in bet_rec:
+    try:
+        email_body = f"MATCH PROFILE : {target['home_team']} vs {target['away_team']}\nRATING TIER         : {bet_rec}\nRECOMMENDED POSITION: {optimal_bet}\nEXPECTED VALUE : +{best_ev*100:.1f}%\nSTAKE SELECTION     : {fractional_scale_stake}%"
+        server = smtplib.SMTP('://gmail.com', 587)
+        server.starttls()
+        server.login("sisonke.predictions@gmail.com", ui_google_app_password.strip())
+        for recipient in [ui_email_recipient.strip(), ui_sms_recipient.strip()]:
+            msg = MIMEText(email_body)
+            msg['Subject'] = f"🚨 SISONKE ALERT: {bet_rec}"
+            msg['From'] = "sisonke.predictions@gmail.com"
+            msg['To'] = recipient
+            server.sendmail(msg['From'], [recipient], msg.as_string())
+        server.quit()
+        st.toast("📬 Coupon successfully broadcasted via SMS and Email!")
+    except Exception as mail_err: st.session_state.freeze_matrix["last_error"] = str(mail_err)
 
-                    h_att = parse_metric_safely(h_s, "att_strength_goals", 1.0)
-                    a_att = parse_metric_safely(a_s, "att_strength_goals", 1.0)
-                    h_box = parse_metric_safely(h_s, "box_threat", 12.0)
-                    
-                    insight_lines = []
-                    if h_att > (a_att * 1.15):
-                        insight_lines.append(f"• **Dominant Threat Area**: **{target['home_team']}**'s split venue home attacking index (**{h_att:.2f}**) outclasses the visitors significantly. Their home ground offensive matrix projects heavy penalty box presence, averaging a high Box Threat factor of **{h_box:.1f}** touches per match window.")
-                    elif a_att > (h_att * 1.15):
-                        insight_lines.append(f"• **Dominant Threat Area**: **{target['away_team']}**'s tactical travelling road efficiency (**{a_att:.2f}**) proves vastly superior to the host's defensive structure. Expect high counter-attacking passing transitions.")
-                    else:
-                        insight_lines.append(f"• **Balanced Attacking Structure**: Both teams display closely matched venue-specific metric footprints (**{h_att:.2f}** vs **{a_att:.2f}**). This closely matched mid-field structure indicates a high mathematical probability of a tactical draw or localized counter-pressing block states.")
-                    
-                    st.markdown(f'<div class="insight-box">{"<br><br>".join(insight_lines)}</div>', unsafe_allow_html=True)
-                    # ==============================================================================
+c_col_l, c_col_r = st.columns(2)
+with c_col_l:
+    st.markdown("### 📊 Live Analytics Monitor")
+    st.metric("Match Confidence Value", f"{confidence}%")
+    st.metric("Value Threshold Rating", bet_rec)
+    st.markdown("### 🧠 Model Tactical Rationale Breakdown")
+    
+    def parse_metric_safely(stats_dict, exact_key, default_fallback):
+        for k, v in stats_dict.items():
+            if str(k).strip().lower().replace("_", " ") == str(exact_key).lower().replace("_", " "): return float(v)
+        return default_fallback
+
+    h_att = parse_metric_safely(h_s, "att_strength_goals", 1.0)
+    a_att = parse_metric_safely(a_s, "att_strength_goals", 1.0)
+    h_box = parse_metric_safely(h_s, "box_threat", 12.0)
+    
+    insight_lines = []
+    if h_att > (a_att * 1.15):
+        insight_lines.append(f"• **Dominant Threat Area**: **{target['home_team']}**'s split venue home attacking index (**{h_att:.2f}**) outclasses the visitors significantly. Their home ground offensive matrix projects heavy penalty box presence, averaging a high Box Threat factor of **{h_box:.1f}** touches per match window.")
+    elif a_att > (h_att * 1.15):
+        insight_lines.append(f"• **Dominant Threat Area**: **{target['away_team']}**'s tactical travelling road efficiency (**{a_att:.2f}**) proves vastly superior to the host's defensive structure. Expect high counter-attacking passing transitions.")
+    else:
+        insight_lines.append(f"• **Balanced Attacking Structure**: Both teams display closely matched venue-specific metric footprints (**{h_att:.2f}** vs **{a_att:.2f}**). This closely matched mid-field structure indicates a high mathematical probability of a tactical draw or localized counter-pressing block states.")
+    
+    st.markdown(f'<div class="insight-box">{"<br><br>".join(insight_lines)}</div>', unsafe_allow_html=True)
+    # ==============================================================================
 # SEGMENT 14 OF 15: BANKROLL PERFORMANCE LEDGER & CLV COUPLING MODULE (PART 2)
 # ==============================================================================
 
