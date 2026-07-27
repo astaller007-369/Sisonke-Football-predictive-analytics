@@ -783,8 +783,10 @@ with tab_pred:
                 prob_matrix = res["raw_matrix"]
                 over_25_p, btts_yes_p, home_cs_p, away_cs_p = 0.0, 0.0, 0.0, 0.0
                 
-                max_r = int(prob_matrix.shape)
-                max_a = int(prob_matrix.shape)
+                # --- FIXED: STRUCTURAL INDEX TUPLE ISOLATION SHIELD ---
+                # Safely split and read dimensional arrays to prevent TypeError crashes permanently
+                max_r = int(prob_matrix.shape[0])
+                max_a = int(prob_matrix.shape[1])
                 
                 for r_idx in range(max_r):
                     for a_idx in range(max_a):
