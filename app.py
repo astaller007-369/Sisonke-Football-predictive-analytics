@@ -52,7 +52,15 @@ if "freeze_matrix" not in st.session_state:
 # SEGMENT 2 OF 15: MASTER INITIALIZATION MATRIX & NAMESPACE GUARDS
 # ==============================================================================
 
-# --- FIXED: GLOBAL SCOPE INITIALIZATION GUARDS ---
+# --- FIXED: AUTORUN BACKEND HANDSHAKE ENGINE GUARD ---
+# Imports your data metrics file and binds it cleanly to the 'engine' object alias
+try:
+    import main_engine as engine
+except ImportError as import_err:
+    st.error("🚨 CRITICAL CORE MISCONFIGURED: The calculation file 'main_engine.py' was not detected in your project folder path directory. Place 'main_engine.py' in the same folder as 'app.py' to clear this block.")
+    st.stop()
+
+# --- GLOBAL SCOPE INITIALIZATION GUARDS ---
 # Formally registers tracking tokens at startup to eliminate line 353 NameErrors permanently
 if "is_profile_view" not in st.session_state:
     st.session_state["is_profile_view"] = False
