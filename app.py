@@ -16,16 +16,14 @@ from email.mime.text import MIMEText
 
 # --- CRITICAL ARCHITECTURAL SAFEGUARD ---
 # Mocking main_engine functions to prevent compilation crashes if main_engine.py is missing.
-# In production, replace this mock block with your direct file execution: import main_engine as engine
+# In production, replace this mock block with: import main_engine as engine
 class MockEngine:
     COMPETITION_MATRIX = {}
     def generate_dynamic_league_table(self, df): 
-        # Standard mock outputs to insulate the UI views during loading phases
-        mock_teams = sorted(list(set(df["home_team"].unique()) if "home_team" in df.columns else ["Team A", "Team B"]))
-        if not mock_teams: mock_teams = ["Team A", "Team B"]
-        return pd.DataFrame({"Team": mock_teams, "P": [25]*len(mock_teams), "GD": [5]*len(mock_teams), "Pts": [45]*len(mock_teams)})
+        # Returns a mock dataframe that contains standard league columns to prevent structural KeyError crashes
+        return pd.DataFrame(columns=["Team", "P", "W", "D", "L", "GF", "GA", "GD", "PTS"])
     def run_rolling_window_backtest(self, df, base, win, step, damp): 
-        return pd.DataFrame({"timestamp": [datetime.datetime.now().strftime("%Y-%m-%d")], "model_probability": [0.65], "bookmaker_odds": [2.10], "is_correct": [True]})
+        return pd.DataFrame()
     def predict_match_probabilities(self, df, home, away, ts, base, h_at, a_at, h_st, a_st, cap, damp, fr):
         return {
             "market_probabilities": {"1 (Home Win)": 0.45, "X (Draw)": 0.25, "2 (Away Win)": 0.30},
@@ -39,10 +37,10 @@ try:
 except ImportError:
     engine = MockEngine()
 
-# Initialize widescreen desktop-free cloud layout environment configurations for mobile browser stability
+# Initialize widescreen desktop-free cloud layout environment configurations
 st.set_page_config(page_title="Sisonke Football Analytics and Prediction", page_icon="⚽", layout="wide")
 
-# Secure layout styling layer with native professional performance enhancements
+# Secure layout styling layer with native performance enhancements
 CUSTOM_DASHBOARD_STYLING = """
 <style>
 .stApp { background-color: #0b0f19; color: #f1f5f9; }
@@ -61,7 +59,7 @@ st.write("<h1>Sis⚽nke Football Analytics and Prediction</h1>", unsafe_allow_ht
 # SEGMENT 2 OF 14: SESSION STATE MANAGEMENT & MAPPING DICTIONARY
 # ==============================================================================
 
-# Initialize Session State values securely across app reruns
+# Initialize Session State values securely
 if "api_quota_max" not in st.session_state: st.session_state["api_quota_max"] = "100"
 if "api_quota_left" not in st.session_state: st.session_state["api_quota_left"] = "N/A"
 if "api_account_tier" not in st.session_state: st.session_state["api_account_tier"] = "Free Plan Tier"
@@ -77,22 +75,24 @@ with q_col3: st.metric("Subscription Tier", f"{st.session_state['api_account_tie
 with q_col4: st.metric("🎯 Database Model Accuracy", f"{st.session_state['overall_model_accuracy']}")
 st.markdown("---")
 
-# EXHAUSTIVE SELECTION REGISTRY: Hardcoded database tracking indices matching official API strings
 API_LEAGUE_ID_MAP = {
     "Premier League (England)": 39,
-    "Championship (England)": 40,
+    "DStv Premiership (South Africa)": 288,
     "La Liga (Spain)": 140,
     "Serie A (Italy)": 135,
     "Bundesliga (Germany)": 78,
     "Ligue 1 (France)": 61,
-    "Eredivisie (Netherlands)": 88,
-    "Liga Portugal (Portugal)": 94,
     "Serie A (Brazil)": 71,
-    "Liga Profesional (Argentina)": 128,
     "Major League Soccer (USA)": 253,
-    "Liga MX (Mexico)": 262,
-    "Betway Premiership (South Africa)": 288,
-    "UEFA Champions League": 2
+    "UEFA Champions League": 2,
+    "UEFA Europa League": 3,
+    "FIFA World Cup": 1,
+    "Copa America": 9,
+    "UEFA Championship (Euro)": 4,
+    "Africa Cup of Nations (AFCON)": 6,
+    "Netherlands Eredivisie": 88,
+    "Liga Portugal": 94,
+    "Liga MX (Mexico)": 262
 }
 
 REQUIRED_COLUMNS = [
@@ -159,7 +159,6 @@ with st.sidebar:
             options=["Low Roster Change", "Standard Turnover", "Heavy Overhaul / New Manager"],
             value="Standard Turnover"
         )
-        # Convert human squad turnover states into precise mathematical modifiers for the engine pipeline
         if squad_turnover_intensity == "Low Roster Change":
             preseason_turnover_rate = 0.95
         elif squad_turnover_intensity == "Heavy Overhaul / New Manager":
@@ -199,7 +198,6 @@ if api_sync_triggered:
                     
                     if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)":
                         if sync_target_scope == "Upcoming 30-Day Fixtures":
-                            # PREFERRED STRUCTURE: Pull upcoming fixtures cleanly by appending status=NS and date frames
                             today_str = current_time_marker.strftime("%Y-%m-%d")
                             future_str = (current_time_marker + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
                             endpoint_query = f"/fixtures?league={league_id}&season={target_year}&from={today_str}&to={future_str}&status=NS"
@@ -272,14 +270,17 @@ if api_sync_triggered and api_data_payload_string:
                 
         elif "response" in api_data and api_data["response"]:
             raw_fixtures_list = api_data["response"]
-            if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)" and sync_target_scope == "Settled Historical Data":
-                target_fixtures = [f for f in raw_fixtures_list if f.get("goals", {}).get("home") is not None]
-                target_fixtures = target_fixtures[:40]
+            if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)":
+                if sync_target_scope == "Upcoming 30-Day Fixtures":
+                    target_fixtures = raw_fixtures_list
+                else:
+                    target_fixtures = [f for f in raw_fixtures_list if f.get("goals", {}).get("home") is not None]
+                    target_fixtures = target_fixtures[:40]
             else: target_fixtures = raw_fixtures_list
             
         total_fixtures = len(target_fixtures)
         # ==============================================================================
-# SEGMENT 4B OF 14: TELEMETRY ACCUMULATOR & DYNAMIC REST DAYS LOOKBACK SHIELD
+# SEGMENT 4B OF 14: TELEMETRY ACCUMULATOR WITH DYNAMIC REST DAYS LOOKBACK SHIELD
 # ==============================================================================
 
         if not is_profile_view and not is_aggregate_stats_view and total_fixtures == 0:
@@ -396,7 +397,7 @@ if api_sync_triggered and api_data_payload_string:
                         combined_disk_df = pd.concat([historical_reference_df, new_api_df], ignore_index=True)
                         combined_disk_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
                         combined_disk_df.to_csv(storage_path, index=False)
-                        st.sidebar.success(f"💾 Combined: Added {len(new_api_df)} rows to local database.")
+                        st.sidebar.success(f"💾 Combined: Added {len(new_api_df)} rows to local master CSV database.")
                     except: pass
                 else: new_api_df.to_csv(storage_path, index=False)
                 st.success("⚡ SUCCESS! Your custom historical data package has been successfully compiled.")
@@ -415,8 +416,9 @@ if uploaded_file is not None:
         uploaded_file.seek(0)
         raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
         if raw_lines and len(raw_lines) > 0:
-            header_line = raw_lines[0]
-            target_column_count = len(header_line.split(","))
+            header_line = str(raw_lines[0])
+            headers = header_line.split(",")
+            target_column_count = len(headers)
             cleaned_lines = [header_line]
             
             for line in raw_lines[1:]:
@@ -472,10 +474,9 @@ if uploaded_file is not None:
             st.sidebar.success(f"Loaded {len(manual_upload_df)} matches successfully!")
     except Exception as e: st.error(f"Manual Ingestion Shield Error: {e}")
     # ==============================================================================
-# SEGMENT 6 OF 14: DATATYPE SYNCHRONIZATION ENGINE & STRATEGIC TUNING CONTROLS
+# SEGMENT 6 OF 14: DECOUPLED INGESTION, DYNAMIC STANDINGS & DECAY GRAPH ENGINE
 # ==============================================================================
 
-# Evaluate if a fresh manual spreadsheet has been uploaded into memory
 if is_valid_data and not full_validation_df.empty:
     working_pipeline_df = full_validation_df.copy()
 else:
@@ -492,7 +493,6 @@ if not working_pipeline_df.empty:
     working_pipeline_df.drop_duplicates(subset=["league_country", "match_timestamp", "home_team", "away_team"], keep="last", inplace=True)
     working_pipeline_df["league_country"] = working_pipeline_df["league_country"].astype(str).str.strip()
     
-    # --- CRITICAL NUMERIC ENFORCEMENT SHIELD ---
     numeric_target_columns = [
         "home_goals", "away_goals", "home_sot", "away_sot", "home_big_chances", "away_big_chances", 
         "home_box_touches", "away_box_touches", "home_through_passes", "away_through_passes", 
@@ -515,10 +515,9 @@ if not working_pipeline_df.empty:
         
     uploaded_leagues = sorted(list(working_pipeline_df["league_country"].dropna().unique()))
 else:
-    st.info("📂 Data Control Room Active: Please upload your recent CSV file containing fixtures to begin.")
+    st.info("📂 Data Control Room Active: Please upload your recent CSV file containing fixtures to begin training.")
     st.stop()
 
-# Build filter views from the active pipeline data dataframe
 selected_league_filter = st.selectbox("Select Target League:", uploaded_leagues)
 half_life_days = st.slider("Time-Decay Half Life (Days)", 15, 90, 45, 1)
 
@@ -533,20 +532,17 @@ confidence_floor_input = st.slider("Strict Confidence Floor Trigger (%)", 15, 85
 accuracy_threshold_floor = st.slider("Strict Accuracy Floor (%)", 35, 75, 50, 5) / 100.0
 
 filtered_df = working_pipeline_df[working_pipeline_df["league_country"].str.lower().str.strip() == selected_league_filter.lower().strip()].reset_index(drop=True)
-# ==============================================================================
-# SEGMENT 7A OF 14: TIME-DECAY VISUALIZATION & VENUE MOMENTUM ENGINE
-# ==============================================================================
 
-# --- VISUALIZATION: TIME-DECAY CURVE GRAPH INJECTION ---
 st.markdown("### 📈 Exponential Time-Decay Weighting Behavior Visualization")
-st.write(f"This graph demonstrates how your chosen half-life of **{half_life_days} days** reduces the predictive influence of historical matches over time.")
-
 days_axis = np.arange(0, 120, 1)
 decay_weights = (0.5) ** (days_axis / half_life_days)
 decay_chart_data = pd.DataFrame({"Days Elapsed Since Match": days_axis, "Model Predictive Weight (0.0 - 1.0)": decay_weights}).set_index("Days Elapsed Since Match")
 st.line_chart(decay_chart_data, use_container_width=True)
 
 tab_pred, tab_tables, tab_history, tab_past = st.tabs(["📅 PROJECTIONS", "🌍 STANDINGS", "📜 BACKTESTER", "📜 PAST GAMES"])
+# ==============================================================================
+# SEGMENT 7A OF 14: PROJECTIONS PROCESSING & VENUE MOMENTUM FLAG TRACKERS
+# ==============================================================================
 
 with tab_pred:
     st.markdown(f"### Match Analytics & Venue Momentum Workspace: {selected_league_filter.upper()}")
@@ -579,6 +575,7 @@ with tab_pred:
 
                 st.markdown("### 🚨 Venue Momentum Indicators")
                 s_col1, s_col2 = st.columns(2)
+                
                 with s_col1:
                     if home_streak_score >= 3: st.success(f"🔥 {target['home_team']} on Hot Home Streak: {home_streak_score} Wins")
                     elif home_streak_score <= -3: st.error(f"🥶 {target['home_team']} in Home Slump: {abs(home_streak_score)} Losses")
@@ -617,17 +614,15 @@ with tab_pred:
                 derby_match_active = st.checkbox(
                     "🚨 Flag Entry as Local Derby / High-Intensity Rivalry", 
                     value=False,
-                    help="Check this box to neutralize standard home crowd advantage weights and scale up high-volatility variance parameters."
+                    help="Neutralizes standard home crowd advantage weights and scales up high-volatility variance parameters."
                 )
 
-                # Map interactive input states into precise decimal multipliers for the calculation matrix
                 weather_goals_multiplier = 1.00
                 if weather_condition_selection == "Heavy Rain / High Pitch Slick Surface":
                     weather_goals_multiplier = 0.92
                 elif weather_condition_selection == "Extreme High Wind / Aerodynamic Drag Line":
                     weather_goals_multiplier = 0.88
 
-                # Map Coach Stability parameters cleanly into quantitative variables
                 coach_attack_multiplier = 1.00
                 coach_volatility_expansion = 1.00
                 if coach_stability_selection == "Long-Term Stability (2+ Years)":
@@ -680,26 +675,22 @@ with tab_pred:
 # SEGMENT 8 OF 14: DYNAMIC MOTIVATION ENGINE & TOURNAMENT EQUALIZER MODULE
 # ==============================================================================
 
-                # --- DYNAMIC MOTIVATION CALIBRATION MULTIPLIER CORE ---
                 home_motivation_multiplier = 1.00
                 away_motivation_multiplier = 1.00
                 tournament_neutral_active = False
                 knockout_volatility_boost = 1.00
                 
-                # Intercept tournament framework selections cleanly
                 if "Tournament Group" in tournament_framework_selection:
                     tournament_neutral_active = True
-                    st.sidebar.info("🌍 Neutral Tournament Rules Active: Standard host crowd multipliers neutralized.")
+                    st.sidebar.info("🌍 Neutral Tournament Rules Active: Standard home-field crowd multipliers neutralized.")
                 elif "Knockout" in tournament_framework_selection:
                     tournament_neutral_active = True
                     knockout_volatility_boost = 1.15
                     st.sidebar.warning("💀 Knockout Match Protocol: Extra-Time risks tracked. Attacking metrics penalized to model late low-blocks.")
 
-                # Extract the live standings table directly from the workspace engine
                 live_standings_df = engine.generate_dynamic_league_table(filtered_df)
                 if live_standings_df is not None and not live_standings_df.empty and not tournament_neutral_active:
                     
-                    # --- DIRECT ADAPTIVE COLUMN TRANSLATION SHIELD ---
                     STANDINGS_COLUMN_REMAP = {
                         "team": "Team", "team name": "Team", "team_name": "Team", "squad": "Team",
                         "p": "P", "played": "P", "pld": "P", "gp": "P"
@@ -711,13 +702,11 @@ with tab_pred:
                         live_standings_df["Team"] = live_standings_df["Team"].astype(str).str.strip().lower()
                         total_league_teams = len(live_standings_df)
                         
-                        # Compute home team position and motivation properties safely
                         home_match_row = live_standings_df[live_standings_df["Team"] == str(target["home_team"]).strip().lower()]
                         if not home_match_row.empty:
                             home_position = int(home_match_row.index) + 1
                             games_played = int(home_match_row["P"].values) if "P" in home_match_row.columns else 25
                             
-                            # Multiplier rules trigger傲 past the 70% mark
                             if games_played > (total_league_teams * 2 * 0.70):
                                 if home_position <= 5:
                                     home_motivation_multiplier = 1.12
@@ -729,7 +718,6 @@ with tab_pred:
                                     home_motivation_multiplier = 0.92
                                     st.sidebar.caption(f"🏖️ Mid-Table Safety Inertia: {target['home_team']} (Home)")
     
-                        # Compute away team position and motivation properties safely
                         away_match_row = live_standings_df[live_standings_df["Team"] == str(target["away_team"]).strip().lower()]
                         if not away_match_row.empty:
                             away_position = int(away_match_row.index) + 1
@@ -944,11 +932,22 @@ with tab_pred:
 
                 if qualified_projections and confidence >= confidence_floor_input:
                     qualified_projections.sort(key=lambda x: x, reverse=True)
-                    best_pick, best_ev, best_prob, best_odds, fractional_scale_stake, assigned_tier_tag = qualified_projections
-                    optimal_bet = best_pick
-                    bet_rec = assigned_tier_tag
+                    
+                    # --- FIXED: STRUCTURAL INDEX MAPPING GUARD ---
+                    # Isolate elements by exact array positions to prevent structural unpacking crashes permanently
+                    target_premium_selection = qualified_projections[0]
+                    optimal_bet = str(target_premium_selection[0])
+                    best_ev = float(target_premium_selection[1])
+                    best_prob = float(target_premium_selection[2])
+                    best_odds = float(target_premium_selection[3])
+                    fractional_scale_stake = float(target_premium_selection[4])
+                    bet_rec = str(target_premium_selection[5])
                 else: 
-                    optimal_bet, best_ev, fractional_scale_stake = "NO COMPREHENSIVE SELECTION MET FLOORS", 0.0, 0.0
+                    optimal_bet = "NO COMPREHENSIVE SELECTION MET FLOORS"
+                    best_ev = 0.00
+                    best_prob = 0.00
+                    best_odds = 2.00  
+                    fractional_scale_stake = 0.00
                     bet_rec = "❌ NO BET"
 
                 if "PREMIUM" in bet_rec or "REGULAR" in bet_rec:
@@ -1037,12 +1036,11 @@ with tab_pred:
                     with st.form("ledger_commit_form"):
                         st.write("**Commit Current Projections to Storage Ledger**")
                         
-                        # --- FIXED: SAFE FLOAT CONVERSION GUARD ---
-                        # Intercepts text string fallbacks on no-bet fixtures to block ValueError crashes
+                        # --- FIXED: UNPACKING IMMUNE FLOAT RESOLUTION LAYER ---
                         try:
                             safe_default_odds = float(best_odds)
                         except (ValueError, TypeError):
-                            safe_default_odds = 2.00  # Safe professional default baseline placeholder
+                            safe_default_odds = 2.00
                             
                         closing_odds_input = st.number_input("Enter Bookmaker Final Closing Odds:", min_value=1.01, value=safe_default_odds, step=0.05)
                         match_outcome_selection = st.selectbox("Select Actual Match Reality Outcome:", ["Pending / Unplayed", "Won Match", "Lost Match", "Void / Refunded"])
@@ -1052,7 +1050,6 @@ with tab_pred:
                             try:
                                 existing_ledger_df = pd.read_csv(ledger_path)
                                 
-                                # Enforce robust type-casting parameters to secure background math stability
                                 current_entry_odds = float(best_odds)
                                 entry_implied_prob = 1.0 / current_entry_odds if current_entry_odds > 0 else 0.0
                                 closing_implied_prob = 1.0 / float(closing_odds_input) if float(closing_odds_input) > 0 else 0.0
@@ -1070,7 +1067,7 @@ with tab_pred:
                                     "Timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                     "Match": f"{target['home_team']} vs {target['away_team']}",
                                     "Market": optimal_bet,
-                                    "Model_Prob": f"{float(best_prob)*100:.1f}%",
+                                    "Model_Prob": str(best_prob),
                                     "Entry_Odds": round(current_entry_odds, 2),
                                     "Closing_Odds": round(float(closing_odds_input), 2),
                                     "CLV_Edge_Pct": f"{clv_edge_margin_pct:+.2f}%",
