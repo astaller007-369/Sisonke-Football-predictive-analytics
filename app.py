@@ -105,12 +105,67 @@ REQUIRED_COLUMNS = [
     "home_passes_final_third_pct", "away_passes_final_third_pct", "home_rest_days", "away_rest_days"
 ]
 # ==============================================================================
-# SEGMENT 3 OF 14: SIDEBAR CONTROLS & NEW SEASON CALIBRATION ENGINE
+# SEGMENT 3 OF 14: SIDEBAR CONTROLS & MULTI-LEAGUE BULK STATUS TRACKER RADAR
 # ==============================================================================
 
 with st.sidebar:
     st.markdown("### 📂 Data Control Room")
     uploaded_file = st.file_uploader("Upload Master Match CSV", type=["csv"])
+    
+    # --- NEW: MULTI-LEAGUE BULK UPLOAD STATUS TABLE RADAR ---
+    storage_path = "master_sisonke_database.csv"
+    active_radar_df = pd.DataFrame()
+    
+    # Read active memory components to build a live diagnostic radar for the user
+    if uploaded_file is not None:
+        try:
+            uploaded_file.seek(0)
+            active_radar_df = pd.read_csv(uploaded_file, engine='python')
+            uploaded_file.seek(0)
+        except: pass
+    elif os.path.exists(storage_path):
+        try: active_radar_df = pd.read_csv(storage_path)
+        except: pass
+
+    if not active_radar_df.empty:
+        st.markdown("#### 📡 Multi-League Ingestion Radar")
+        radar_rows = []
+        
+        # Enforce column normalization to isolate data frames cleanly
+        active_radar_df.columns = [str(c).strip().lower() for c in active_radar_df.columns]
+        league_col = "league_country" if "league_country" in active_radar_df.columns else ("league" if "league" in active_radar_df.columns else "country")
+        goals_col = "home_goals" if "home_goals" in active_radar_df.columns else ("fthg" if "fthg" in active_radar_df.columns else None)
+        
+        if league_col in active_radar_df.columns:
+            unique_leagues = sorted(list(active_radar_df[league_col].dropna().unique()))
+            for lg in unique_leagues:
+                lg_df = active_radar_df[active_radar_df[league_col] == lg]
+                total_records = len(lg_df)
+                
+                # Count settled rows with active scoring telemetry maps
+                if goals_col and goals_col in lg_df.columns:
+                    settled_count = int(lg_df[goals_col].dropna().notna().sum())
+                else:
+                    settled_count = 0
+                    
+                upcoming_count = total_records - settled_count
+                
+                # Automated Phase Assignment Classifier Rule Pass
+                if settled_count == 0:
+                    phase_tag = "⏳ PRE-SEASON (ANCHOR REQ)"
+                elif settled_count < 20:
+                    phase_tag = "🌱 EARLY SEASON (HYBRID)"
+                else:
+                    phase_tag = "🟢 IN-PROGRESS (DECAY)"
+                    
+                radar_rows.append({
+                    "Target Competition": str(lg).upper(),
+                    "Settled": settled_count,
+                    "Upcoming": upcoming_count,
+                    "Database Status Room": phase_tag
+                })
+            st.dataframe(pd.DataFrame(radar_rows), use_container_width=True, hide_index=True)
+            
     st.markdown("---")
     st.markdown("### 🔑 Free API Automation Sync")
     api_token_input = st.text_input("Enter Free API-Football Token Key:", value="4c023480e8ffe2539261cd8746f67121", type="password")
@@ -146,7 +201,7 @@ with st.sidebar:
     elif sync_operation_mode == "View Team Profile Identity":
         target_team_id_input = st.number_input("Enter Official API Team ID Key:", min_value=1, value=33, step=1, key="profile_team_id")
 
-    # --- NEW SEASON CALIBRATION ENGINE INJECTION ---
+    # --- SQUAD TURNOVER SLIDER LAYER ---
     st.markdown("---")
     st.markdown("### 🛠️ Pre-Season Calibration Room")
     preseason_calibration_active = st.checkbox("Activate Prior-Season Baseline Anchor", value=False, help="Enable this when a new season hasn't started yet to use last season's stats with dynamic turnover dampeners.")
@@ -159,12 +214,9 @@ with st.sidebar:
             options=["Low Roster Change", "Standard Turnover", "Heavy Overhaul / New Manager"],
             value="Standard Turnover"
         )
-        if squad_turnover_intensity == "Low Roster Change":
-            preseason_turnover_rate = 0.95
-        elif squad_turnover_intensity == "Heavy Overhaul / New Manager":
-            preseason_turnover_rate = 0.82
-        else:
-            preseason_turnover_rate = 0.90
+        if squad_turnover_intensity == "Low Roster Change": preseason_turnover_rate = 0.95
+        elif squad_turnover_intensity == "Heavy Overhaul / New Manager": preseason_turnover_rate = 0.82
+        else: preseason_turnover_rate = 0.90
 
     st.markdown("---")
     api_sync_triggered = st.button("🚀 Execute Automated Bulk Scrape")
@@ -173,67 +225,7 @@ with st.sidebar:
     ui_email_recipient = st.text_input("Primary Email:", value="vvuyo007@gmail.com")
     ui_sms_recipient = st.text_input("Mobile SMS:", value="0750739223@sms.telkom.co.za")
     ui_google_app_password = st.text_input("Password Key:", type="password", value="your_free_google_app_password")
-
-# --- LIVE PURE PYTHON API AUTOMATION LAYER ---
-api_data_payload_string = ""
-if api_sync_triggered:
-    if not api_token_input: st.error("⚠️ Token Missing!")
-    else:
-        with st.spinner("Connecting via Pure Python HTTPS Socket... Executing Selection Sweep..."):
-            try:
-                current_time_marker = datetime.datetime.now()
-                if sync_operation_mode in ["Compile Bulk Historical CSV (Method 1)", "Aggregated Team Stats"]:
-                    league_id = API_LEAGUE_ID_MAP[target_sync_country]
-                    
-                    if manual_override_active:
-                        target_year = selected_override_year
-                    else:
-                        if sync_target_scope == "Upcoming 30-Day Fixtures":
-                            target_year = current_time_marker.year
-                        else:
-                            target_year = current_time_marker.year - 1
-
-                    conn = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=15)
-                    api_headers = {'x-apisports-key': api_token_input}
-                    
-                    if sync_operation_mode == "Compile Bulk Historical CSV (Method 1)":
-                        if sync_target_scope == "Upcoming 30-Day Fixtures":
-                            today_str = current_time_marker.strftime("%Y-%m-%d")
-                            future_str = (current_time_marker + datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-                            endpoint_query = f"/fixtures?league={league_id}&season={target_year}&from={today_str}&to={future_str}&status=NS"
-                        else:
-                            endpoint_query = f"/fixtures?league={league_id}&season={target_year}&last=20"
-                    else:
-                        endpoint_query = f"/teams/statistics?league={league_id}&season={target_year}&team={int(target_team_id_input)}"
-                        
-                    conn.request("GET", endpoint_query, headers=api_headers)
-                    api_response = conn.getresponse()
-                    if api_response.status == 200: api_data_payload_string = api_response.read().decode("utf-8")
-                    conn.close()
-                            
-                else:
-                    conn = http.client.HTTPSConnection("v3.football.api-sports.io", timeout=15)
-                    api_headers = {'x-apisports-key': api_token_input}
-                    
-                    if sync_operation_mode == "Global Calendar Date":
-                        endpoint_query = f"/fixtures?date={target_calendar_date.strftime('%Y-%m-%d')}&timezone={target_timezone_string.strip()}"
-                        if optional_league_scope:
-                            league_id = API_LEAGUE_ID_MAP[target_sync_country]
-                            endpoint_query += f"&league={league_id}"
-                    elif sync_operation_mode == "Dedicated Team Profile Form":
-                        param_type = "next" if "Next" in team_form_scope else "last"
-                        endpoint_query = f"/fixtures?team={int(target_team_id_input)}&{param_type}={int(team_record_depth)}"
-                    elif sync_operation_mode == "View Team Profile Identity":
-                        endpoint_query = f"/teams?id={int(target_team_id_input)}"
-                    
-                    conn.request("GET", endpoint_query, headers=api_headers)
-                    api_response = conn.getresponse()
-                    if api_response.status == 200: api_data_payload_string = api_response.read().decode("utf-8")
-                    else: st.error(f"❌ Server Rejected Call! Status Code: {api_response.status}")
-                    conn.close()
-                    
-            except Exception as init_api_err: st.error(f"❌ Connection Handshake Parameters Misconfigured: {init_api_err}")
-            # ==============================================================================
+    # ==============================================================================
 # SEGMENT 4A OF 14: JSON UNPACKING & BATCH ARRAY FILTERING
 # ==============================================================================
 
@@ -416,7 +408,7 @@ if uploaded_file is not None:
         uploaded_file.seek(0)
         raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
         if raw_lines and len(raw_lines) > 0:
-            header_line = str(raw_lines[0])
+            header_line = str(raw_lines)
             headers = header_line.split(",")
             target_column_count = len(headers)
             cleaned_lines = [header_line]
@@ -461,8 +453,7 @@ if uploaded_file is not None:
             }
             
             for mandatory_col, fallback_val in DEFAULT_TIER2_FALLBACKS.items():
-                if mandatory_col not in manual_upload_df.columns:
-                    manual_upload_df[mandatory_col] = fallback_val
+                if mandatory_col not in manual_upload_df.columns: manual_upload_df[mandatory_col] = fallback_val
                 else: manual_upload_df[mandatory_col] = manual_upload_df[mandatory_col].fillna(fallback_val)
             
             valid_structural_columns = ["league_country", "match_timestamp", "home_team", "away_team"] + list(DEFAULT_TIER2_FALLBACKS.keys())
@@ -471,7 +462,6 @@ if uploaded_file is not None:
                     
             full_validation_df = pd.concat([full_validation_df, manual_upload_df], ignore_index=True)
             is_valid_data = True
-            st.sidebar.success(f"Loaded {len(manual_upload_df)} matches successfully!")
     except Exception as e: st.error(f"Manual Ingestion Shield Error: {e}")
     # ==============================================================================
 # SEGMENT 6 OF 14: DECOUPLED INGESTION, DYNAMIC STANDINGS & DECAY GRAPH ENGINE
