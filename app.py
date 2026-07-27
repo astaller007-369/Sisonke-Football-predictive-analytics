@@ -260,7 +260,7 @@ if api_sync_triggered and resolved_payload_string:
 # ==============================================================================
 
                 # Direct chronological sort tracking loop pass across raw responses
-                if target_fixtures:
+ if target_fixtures:
                     target_fixtures.sort(key=lambda x: str(x.get("fixture", {}).get("date", "")), reverse=False)
                     
     except Exception as api_parse_structural_error:
