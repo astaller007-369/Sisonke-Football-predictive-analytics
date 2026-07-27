@@ -1026,105 +1026,104 @@ with c_col_l:
 # SEGMENT 14 OF 15: BANKROLL PERFORMANCE LEDGER & CLV COUPLING MODULE (PART 2)
 # ==============================================================================
 
-                with c_col_r:
-                    st.markdown("### 🎫 Calibrated Ticket Slip")
-                    ticket_string_content = (
-                        f"# ========================================\n"
-                        f"#          SISONKE CALIBRATED TICKET SLIP \n"
-                        f"# ========================================\n"
-                        f"MATCH PROFILE   : {target['home_team']} vs {target['away_team']}\n"
-                        f"RATING TIER TAG : {bet_rec}\n"
-                        f"TARGET MARKET   : {optimal_bet}\n"
-                        f"EXPECTED VALUE  : +{best_ev*100:.2f}%\n"
-                        f"KELLY STAKE     : {fractional_scale_stake}%\n"
-                        f"CONFIDENCE RATE : {confidence}%\n"
-                        f"TIMESTAMP EXP   : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                        f"# ========================================"
-                    )
-                    st.text_area("Ticket Log Slip View", value=ticket_string_content, height=180)
+with c_col_r:
+    st.markdown("### 🎫 Calibrated Ticket Slip")
+    ticket_string_content = (
+        f"# ========================================\n"
+        f"#          SISONKE CALIBRATED TICKET SLIP \n"
+        f"# ========================================\n"
+        f"MATCH PROFILE   : {target['home_team']} vs {target['away_team']}\n"
+        f"RATING TIER TAG : {bet_rec}\n"
+        f"TARGET MARKET   : {optimal_bet}\n"
+        f"EXPECTED VALUE  : +{best_ev*100:.2f}%\n"
+        f"KELLY STAKE     : {fractional_scale_stake}%\n"
+        f"CONFIDENCE RATE : {confidence}%\n"
+        f"TIMESTAMP EXP   : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"# ========================================"
+    )
+    st.text_area("Ticket Log Slip View", value=ticket_string_content, height=180)
                     
-                    st.download_button(
-                        label="💾 Download Coupon File Ticket (.txt)",
-                        data=ticket_string_content,
-                        file_name=f"sisonke_ticket_{target['home_team']}_vs_{target['away_team']}.txt",
-                        mime="text/plain",
-                        use_container_width=True
-                    )
+    st.download_button(
+        label="💾 Download Coupon File Ticket (.txt)",
+        data=ticket_string_content,
+        file_name=f"sisonke_ticket_{target['home_team']}_vs_{target['away_team']}.txt",
+        mime="text/plain",
+        use_container_width=True
+    )
                     
-                    # --- INTERACTIVE BANKROLL LEDGER & CLV AUDIT LAYER ---
-                    st.markdown("---")
-                    st.markdown("### 🏦 Sisonke Investment Ledger Room")
-                    ledger_path = "master_bankroll_ledger.csv"
+    # --- INTERACTIVE BANKROLL LEDGER & CLV AUDIT LAYER ---
+    st.markdown("---")
+    st.markdown("### 🏦 Sisonke Investment Ledger Room")
+    ledger_path = "master_bankroll_ledger.csv"
                     
-                    if not os.path.exists(ledger_path):
-                        pd.DataFrame(columns=[
-                            "Log_ID", "Timestamp", "Match", "Market", "Model_Prob", 
-                            "Entry_Odds", "Closing_Odds", "CLV_Edge_Pct", "Kelly_Stake_Pct", 
-                            "Outcome", "Net_Profit_Units"
-                        ]).to_csv(ledger_path, index=False)
+    if not os.path.exists(ledger_path):
+        pd.DataFrame(columns=[
+            "Log_ID", "Timestamp", "Match", "Market", "Model_Prob", 
+            "Entry_Odds", "Closing_Odds", "CLV_Edge_Pct", "Kelly_Stake_Pct", 
+            "Outcome", "Net_Profit_Units"
+        ]).to_csv(ledger_path, index=False)
 
-                    with st.form("ledger_commit_form"):
-                        st.write("**Commit Current Projections to Storage Ledger**")
+    with st.form("ledger_commit_form"):
+        st.write("**Commit Current Projections to Storage Ledger**")
                         
-                        # --- FIXED: UNPACKING IMMUNE FLOAT RESOLUTION LAYER ---
-                        try:
-                            safe_default_odds = float(best_odds)
-                        except (ValueError, TypeError):
-                            safe_default_odds = 2.00
+        try:
+            safe_default_odds = float(best_odds)
+        except (ValueError, TypeError):
+            safe_default_odds = 2.00
                             
-                        closing_odds_input = st.number_input("Enter Bookmaker Final Closing Odds:", min_value=1.01, value=safe_default_odds, step=0.05)
-                        match_outcome_selection = st.selectbox("Select Actual Match Reality Outcome:", ["Pending / Unplayed", "Won Match", "Lost Match", "Void / Refunded"])
+        closing_odds_input = st.number_input("Enter Bookmaker Final Closing Odds:", min_value=1.01, value=safe_default_odds, step=0.05)
+        match_outcome_selection = st.selectbox("Select Actual Match Reality Outcome:", ["Pending / Unplayed", "Won Match", "Lost Match", "Void / Refunded"])
                         
-                        submit_ledger_entry = st.form_submit_button("💾 Save Ticket to Hard Drive Ledger")
-                        if submit_ledger_entry and "NO COMPREHENSIVE" not in optimal_bet:
-                            try:
-                                existing_ledger_df = pd.read_csv(ledger_path)
+        submit_ledger_entry = st.form_submit_button("💾 Save Ticket to Hard Drive Ledger")
+        if submit_ledger_entry and "NO COMPREHENSIVE" not in optimal_bet:
+            try:
+                existing_ledger_df = pd.read_csv(ledger_path)
                                 
-                                current_entry_odds = float(best_odds)
-                                entry_implied_prob = 1.0 / current_entry_odds if current_entry_odds > 0 else 0.0
-                                closing_implied_prob = 1.0 / float(closing_odds_input) if float(closing_odds_input) > 0 else 0.0
-                                clv_edge_margin_pct = round((entry_implied_prob - closing_implied_prob) * 100, 2)
+                current_entry_odds = float(best_odds)
+                entry_implied_prob = 1.0 / current_entry_odds if current_entry_odds > 0 else 0.0
+                closing_implied_prob = 1.0 / float(closing_odds_input) if float(closing_odds_input) > 0 else 0.0
+                clv_edge_margin_pct = round((entry_implied_prob - closing_implied_prob) * 100, 2)
                                 
-                                if match_outcome_selection == "Won Match": 
-                                    net_units = round(float(fractional_scale_stake) * (current_entry_odds - 1.0), 2)
-                                elif match_outcome_selection == "Lost Match": 
-                                    net_units = -round(float(fractional_scale_stake), 2)
-                                else: 
-                                    net_units = 0.00
+                if match_outcome_selection == "Won Match": 
+                    net_units = round(float(fractional_scale_stake) * (current_entry_odds - 1.0), 2)
+                elif match_outcome_selection == "Lost Match": 
+                    net_units = -round(float(fractional_scale_stake), 2)
+                else: 
+                    net_units = 0.00
                                     
-                                new_ledger_row = {
-                                    "Log_ID": str(int(datetime.datetime.now().timestamp())),
-                                    "Timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                    "Match": f"{target['home_team']} vs {target['away_team']}",
-                                    "Market": optimal_bet,
-                                    "Model_Prob": str(best_prob),
-                                    "Entry_Odds": round(current_entry_odds, 2),
-                                    "Closing_Odds": round(float(closing_odds_input), 2),
-                                    "CLV_Edge_Pct": f"{clv_edge_margin_pct:+.2f}%",
-                                    "Kelly_Stake_Pct": f"{float(fractional_scale_stake):.2f}%",
-                                    "Outcome": match_outcome_selection,
-                                    "Net_Profit_Units": net_units
-                                }
+                new_ledger_row = {
+                    "Log_ID": str(int(datetime.datetime.now().timestamp())),
+                    "Timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Match": f"{target['home_team']} vs {target['away_team']}",
+                    "Market": optimal_bet,
+                    "Model_Prob": str(best_prob),
+                    "Entry_Odds": round(current_entry_odds, 2),
+                    "Closing_Odds": round(float(closing_odds_input), 2),
+                    "CLV_Edge_Pct": f"{clv_edge_margin_pct:+.2f}%",
+                    "Kelly_Stake_Pct": f"{float(fractional_scale_stake):.2f}%",
+                    "Outcome": match_outcome_selection,
+                    "Net_Profit_Units": net_units
+                }
                                 
-                                updated_ledger_df = pd.concat([existing_ledger_df, pd.DataFrame([new_ledger_row])], ignore_index=True)
-                                updated_ledger_df.to_csv(ledger_path, index=False)
-                                st.toast("💾 Performance records cataloged successfully!")
-                                st.rerun()
-                            except Exception as ledger_err: 
-                                st.error(f"Ledger Matrix Connection Interrupted: {ledger_err}")
+                updated_ledger_df = pd.concat([existing_ledger_df, pd.DataFrame([new_ledger_row])], ignore_index=True)
+                updated_ledger_df.to_csv(ledger_path, index=False)
+                st.toast("💾 Performance records cataloged successfully!")
+                st.rerun()
+            except Exception as ledger_err: 
+                st.error(f"Ledger Matrix Connection Interrupted: {ledger_err}")
 
-                    try:
-                        display_ledger_df = pd.read_csv(ledger_path)
-                        if not display_ledger_df.empty:
-                            st.markdown("#### 📈 Cumulative Bankroll Performance Ledger")
-                            st.dataframe(display_ledger_df.tail(10), use_container_width=True, hide_index=True)
+    try:
+        display_ledger_df = pd.read_csv(ledger_path)
+        if not display_ledger_df.empty:
+            st.markdown("#### 📈 Cumulative Bankroll Performance Ledger")
+            st.dataframe(display_ledger_df.tail(10), use_container_width=True, hide_index=True)
                             
-                            display_ledger_df["Cumulative_Units"] = display_ledger_df["Net_Profit_Units"].cumsum()
-                            st.write("**Visualized Compounding Return Yield Curve (Rolling Units Profit)**")
-                            st.line_chart(display_ledger_df.set_index("Timestamp")["Cumulative_Units"], use_container_width=True)
-                    except: 
-                        pass
-                        # ==============================================================================
+            display_ledger_df["Cumulative_Units"] = display_ledger_df["Net_Profit_Units"].cumsum()
+            st.write("**Visualized Compounding Return Yield Curve (Rolling Units Profit)**")
+            st.line_chart(display_ledger_df.set_index("Timestamp")["Cumulative_Units"], use_container_width=True)
+    except: 
+        pass
+        # ==============================================================================
 # SEGMENT 15 OF 15: DYNAMIC STANDINGS MODULE & ROLLING WINDOW BACKTESTER ENGINES
 # ==============================================================================
 
