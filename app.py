@@ -396,7 +396,7 @@ if api_sync_triggered and api_data_payload_string:
                 st.rerun()
     except Exception as process_api_err: st.error(f"❌ Extraction Error: {process_api_err}")
     # ==============================================================================
-# SEGMENT 5 OF 14: CSV SCHEMA TRANSLATION ENGINE & AUTOMATED TIER-2 SHIELD
+# SEGMENT 5 OF 14: CSV SCHEMA TRANSLATION ENGINE & AUTOMATED ENTERPRISE SHIELD
 # ==============================================================================
 
 full_validation_df = pd.DataFrame()
@@ -408,7 +408,7 @@ if uploaded_file is not None:
         uploaded_file.seek(0)
         raw_lines = [line.decode("utf-8").strip() for line in uploaded_file.readlines()]
         if raw_lines and len(raw_lines) > 0:
-            header_line = str(raw_lines)
+            header_line = str(raw_lines[0])
             headers = header_line.split(",")
             target_column_count = len(headers)
             cleaned_lines = [header_line]
@@ -424,9 +424,12 @@ if uploaded_file is not None:
             corrected_csv_data = io.StringIO("\n".join(cleaned_lines))
             manual_upload_df = pd.read_csv(corrected_csv_data, engine='python')
             
+            # --- FIXED: EXPANDED ENTERPRISE DATA REMAP SHIELD ---
+            # Added support for public repository conventions like 'div' and 'league_id'
             ALIGNED_HEADER_TRANSLATION_MAP = {
+                "div": "league_country", "league name": "league_country", "league_name": "league_country",
+                "country": "league_country", "league": "league_country", "competition": "league_country",
                 "date": "match_timestamp", "timestamp": "match_timestamp", "time": "match_timestamp",
-                "country": "league_country", "league": "league_country",
                 "home": "home_team", "hometeam": "home_team", "home team": "home_team",
                 "away": "away_team", "awayteam": "away_team", "away team": "away_team",
                 "fthg": "home_goals", "hg": "home_goals", "home goals": "home_goals",
@@ -436,7 +439,17 @@ if uploaded_file is not None:
             manual_upload_df.columns = [str(c).strip().lower() for c in manual_upload_df.columns]
             manual_upload_df.rename(columns=ALIGNED_HEADER_TRANSLATION_MAP, inplace=True)
             
-            if "league_country" not in manual_upload_df.columns: manual_upload_df["league_country"] = "Imported League"
+            # Smart Lookup Shield: If 'league_country' column is still missing, search for structural fallbacks
+            if "league_country" not in manual_upload_df.columns:
+                fallback_found = False
+                for col in manual_upload_df.columns:
+                    if col in ["div", "league", "country", "competition"]:
+                        manual_upload_df.rename(columns={col: "league_country"}, inplace=True)
+                        fallback_found = True
+                        break
+                if not fallback_found:
+                    manual_upload_df["league_country"] = "Imported League"
+            
             if "match_timestamp" not in manual_upload_df.columns: manual_upload_df["match_timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d")
             if "home_team" not in manual_upload_df.columns: manual_upload_df["home_team"] = "Home Squad"
             if "away_team" not in manual_upload_df.columns: manual_upload_df["away_team"] = "Away Squad"
